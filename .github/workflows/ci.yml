@@ -6,7 +6,7 @@ on:
     branches: [main]
 
 jobs:
-  validate:
+  fmt:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -15,21 +15,29 @@ jobs:
         with:
           terraform_version: "1.14.9"
 
-      - name: terraform fmt
-        run: terraform fmt -check -recursive
+      - run: terraform fmt -check -recursive
 
-      - name: validate every module
-        run: |
-          set -e
-          for dir in modules/*/; do
-            # Modules using configuration_aliases (e.g. aws.us_east_1) cannot
-            # validate standalone — terraform requires the consumer to wire the
-            # aliased provider. For those, validate the examples/minimal/ instead.
-            if [ -d "$dir/examples/minimal" ]; then
-              target="$dir/examples/minimal"
-            else
-              target="$dir"
-            fi
-            echo "==> validating $target"
-            (cd "$target" && terraform init -backend=false -input=false && terraform validate)
-          done
+  validate:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Modules using configuration_aliases (e.g. aws.us_east_1) cannot
+        # validate standalone — point at examples/minimal instead so the
+        # consumer-side provider wiring is in scope.
+        target:
+          - modules/account-baseline/examples/minimal
+          - modules/iam-identity-center
+          - modules/static-website
+          - modules/route53-registered-domain/examples/minimal
+          - modules/vpc-ecs-cloudfront
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.14.9"
+
+      - run: terraform -chdir=${{ matrix.target }} init -backend=false -input=false
+
+      - run: terraform -chdir=${{ matrix.target }} validate
