@@ -1,0 +1,4 @@
+[tools]
+terraform  = "1.14.9"
+awscli     = "latest"
+pre-commit = "latest"
