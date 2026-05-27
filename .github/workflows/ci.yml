@@ -42,3 +42,16 @@ jobs:
       - run: terraform -chdir=${{ matrix.target }} init -backend=false -input=false
 
       - run: terraform -chdir=${{ matrix.target }} validate
+
+  python-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: ops-alerting handler tests
+        working-directory: modules/ops-alerting/src/alerting
+        run: python -m unittest discover -v

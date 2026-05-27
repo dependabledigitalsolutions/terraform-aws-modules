@@ -58,6 +58,11 @@ data "archive_file" "lambda" {
   type        = "zip"
   source_dir  = "${path.module}/src/alerting"
   output_path = "${path.module}/.build/${var.name_prefix}-alerting.zip"
+
+  # Unit tests live alongside the handlers so the `from handlers.* import`
+  # paths resolve the same way they do in the Lambda runtime, but they
+  # don't belong in the deployed zip.
+  excludes = ["tests", "tests/__init__.py", "tests/test_handlers.py"]
 }
 
 resource "aws_cloudwatch_log_group" "lambda" {

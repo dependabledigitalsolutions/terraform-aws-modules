@@ -11,15 +11,19 @@ import logging
 
 from handlers.cloudwatch_alarms import CloudWatchAlarmHandler
 from handlers.guardduty import GuarddutyFindingHandler
+from handlers.product_event import ProductEventHandler
 from handlers.sns_passthrough import SnsPassthroughHandler
 from output_utils import publish_output
 
 logger = logging.getLogger()
 logger.setLevel("INFO")
 
+# Order matters: most-specific matcher first. SnsPassthroughHandler stays
+# last so any unrecognised SNS message still reaches the destinations.
 HANDLERS = [
     CloudWatchAlarmHandler(),
     GuarddutyFindingHandler(),
+    ProductEventHandler(),
     SnsPassthroughHandler(),
 ]
 
