@@ -11,6 +11,13 @@ override.tf.json
 *_override.tf
 *_override.tf.json
 
+# Python
+__pycache__/
+*.pyc
+
+# Build artifacts (produced by archive_file at plan time)
+**/.build/
+
 # OS
 .DS_Store
 Thumbs.db
