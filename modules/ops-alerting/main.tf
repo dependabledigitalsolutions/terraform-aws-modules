@@ -65,8 +65,14 @@ data "archive_file" "lambda" {
 
   # Unit tests live alongside the handlers so the `from handlers.* import`
   # paths resolve the same way they do in the Lambda runtime, but they
-  # don't belong in the deployed zip.
-  excludes = ["tests", "tests/__init__.py", "tests/test_handlers.py"]
+  # don't belong in the deployed zip. requirements-dev.txt is for local
+  # / CI test setup only — boto3+urllib3 are already in the runtime.
+  excludes = [
+    "tests",
+    "tests/__init__.py",
+    "tests/test_handlers.py",
+    "requirements-dev.txt",
+  ]
 }
 
 resource "aws_cloudwatch_log_group" "lambda" {

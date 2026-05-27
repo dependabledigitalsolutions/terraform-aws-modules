@@ -1,0 +1,6 @@
+# Runtime deps for handler unit tests.
+#
+# These ship in the AWS Lambda Python runtime, so they're not in the
+# deployed zip — only needed locally / in CI to import output_utils.
+boto3
+urllib3

@@ -52,11 +52,9 @@ jobs:
         with:
           python-version: "3.13"
 
-      # boto3 ships in the Lambda runtime; tests need it locally to import
-      # output_utils. urllib3 too — already a transitive of botocore but pin
-      # explicitly so the import succeeds regardless of what's pre-installed.
-      - name: Install runtime dependencies
-        run: pip install boto3 urllib3
+      - name: Install ops-alerting dev deps
+        working-directory: modules/ops-alerting/src/alerting
+        run: pip install -r requirements-dev.txt
 
       - name: ops-alerting handler tests
         working-directory: modules/ops-alerting/src/alerting
