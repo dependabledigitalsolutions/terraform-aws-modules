@@ -13,6 +13,7 @@ This is a **pure modules library** — no opinionated baselines, no per-environm
 | [`static-website`](modules/static-website) | S3 (private, OAC) + CloudFront + Route53 alias records | v0.1.0 |
 | [`route53-registered-domain`](modules/route53-registered-domain) | Domain registration (or settings-only on existing) + hosted zone | v0.1.0 |
 | [`vpc-ecs-cloudfront`](modules/vpc-ecs-cloudfront) | VPC + ECS Fargate + ALB + CloudFront in front of ALB | v0.1.0 |
+| [`ops-alerting`](modules/ops-alerting) | SNS-fed Python Lambda that fans alerts out to Slack / Teams / Chime / SES (webhooks pulled from SSM Parameter Store) | v0.1.0 |
 
 ## IAM Identity Center: Entra / Google setup
 
