@@ -62,9 +62,35 @@ Every destination is independent — you can enable any subset. The Lambda no-op
 |---|---|
 | `CloudWatchAlarmHandler` | SNS message JSON contains `AlarmName` — the standard CloudWatch alarm payload |
 | `GuarddutyFindingHandler` | EventBridge-routed GuardDuty finding (must include `Finding_Type`) |
+| `ProductEventHandler` | EventBridge → SNS event whose JSON payload has `detail-type`, `source`, and a `detail` object — application-domain events. Reads `detail.title`, `detail.body`, `detail.link_path` if present, and surfaces other detail fields in a footer. |
 | `SnsPassthroughHandler` | Any other SNS message — surfaces `Subject` + raw `Message` verbatim |
 
 Add a new typed handler by writing another `EventHandler` subclass and appending it to `HANDLERS` in `alerting.py`. Put it above `SnsPassthroughHandler` so the typed match wins.
+
+### Wiring application events to the alerting Lambda
+
+Producers `PutEvents` to an EventBridge bus with a detail like:
+
+```json
+{
+  "title": "New high complaint at Woolwich Branch",
+  "body": "Foreign object found in jollof rice",
+  "link_path": "https://app.example.com/complaints/abc",
+  "severity": "high",
+  "notify_channels": ["slack"]
+}
+```
+
+An EventBridge rule pattern-matches on `detail.notify_channels: ["slack"]` and forwards to the module's SNS topic. The `ProductEventHandler` then formats it for Slack — title as the headline, body as the description, `link_path` as a clickable link when absolute, and the rest of the detail as a context footer.
+
+### Running the handler tests locally
+
+```sh
+cd modules/ops-alerting/src/alerting
+python -m unittest discover -v
+```
+
+CI runs the same command on every push.
 
 ## Rotating a webhook
 
