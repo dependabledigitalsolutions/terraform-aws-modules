@@ -37,6 +37,9 @@ _RESERVED_DETAIL_KEYS = frozenset({
     "title", "body", "link_path", "notify_channels", "notify_emails",
 })
 
+# Channel name a producer puts in notify_channels to ask for an email.
+_EMAIL_CHANNEL = "email"
+
 # Cap body and field values so a chatty event can't drown the channel.
 _BODY_MAX_CHARS = 500
 _FIELD_MAX_CHARS = 200
@@ -96,6 +99,29 @@ class ProductEventHandler(EventHandler):
                 message.write(f"\n*{k}:* {rendered}")
 
         return message.getvalue()
+
+    def extra_email_recipients(self, event):
+        """Read `detail.notify_emails`, but only if the producer also asked
+        for email delivery via `notify_channels`. This means a producer that
+        forgets the channel flag won't accidentally trigger emails."""
+        try:
+            payload = json.loads(event["Records"][0]["Sns"]["Message"])
+        except (KeyError, IndexError, TypeError, ValueError):
+            return []
+        detail = payload.get("detail", {}) or {}
+        channels = detail.get("notify_channels") or []
+        if _EMAIL_CHANNEL not in channels:
+            return []
+        emails = detail.get("notify_emails") or []
+        return [e for e in emails if isinstance(e, str) and "@" in e]
+
+    def email_subject(self, event):
+        try:
+            payload = json.loads(event["Records"][0]["Sns"]["Message"])
+        except (KeyError, IndexError, TypeError, ValueError):
+            return super().email_subject(event)
+        detail = payload.get("detail", {}) or {}
+        return detail.get("title") or payload.get("detail-type") or super().email_subject(event)
 
 
 def _render_scalar(value):

@@ -29,11 +29,11 @@ def _bool(name):
     return os.environ.get(name, "").lower() == "true"
 
 
-def publish_output(message):
+def publish_output(message, extra_email_recipients=None, subject=None):
     publish_to_slack(message)
     publish_to_teams(message)
     publish_to_chime(message)
-    publish_to_ses(message)
+    publish_to_ses(message, extra_recipients=extra_email_recipients, subject=subject)
 
 
 def publish_to_slack(message):
@@ -77,16 +77,42 @@ def publish_to_chime(message):
     _post_json("chime", url, {"Content": message})
 
 
-def publish_to_ses(message):
+def publish_to_ses(message, extra_recipients=None, subject=None):
+    """Send `message` via SES.
+
+    Recipients are the union of:
+      * static `email_recipients` env var (comma-separated) — the
+        module-time default, used when every event goes to the same audience.
+      * `extra_recipients` — per-event addresses passed in by a handler that
+        knows which opted-in users care about THIS event.
+
+    Sending is skipped entirely when SES output is disabled. When SES is on
+    but neither source supplies a recipient, we log and return without
+    raising — most events don't have email recipients and that's fine.
+    """
     if not _bool("enable_ses_email_output"):
         return
     sender = os.environ.get("ses_sender_email")
-    recipients_str = os.environ.get("email_recipients", "")
-    recipients = [r.strip() for r in recipients_str.split(",") if r.strip()]
-    if not sender or not recipients:
-        logger.warning("enable_ses_email_output=true but sender/recipients unset")
+    if not sender:
+        logger.warning("enable_ses_email_output=true but ses_sender_email unset")
         return
 
+    recipients_str = os.environ.get("email_recipients", "")
+    static = [r.strip() for r in recipients_str.split(",") if r.strip()]
+    dynamic = [r.strip() for r in (extra_recipients or []) if isinstance(r, str) and r.strip()]
+    # Dedupe while preserving order — static first, then any additions
+    seen = set()
+    recipients = []
+    for r in static + dynamic:
+        if r not in seen:
+            seen.add(r)
+            recipients.append(r)
+    if not recipients:
+        # SES output enabled but nothing to send to — common when the only
+        # email path is per-event and this event didn't list any.
+        return
+
+    subject_line = subject or "AWS account alert"
     client = boto3.client("ses")
     for recipient in recipients:
         try:
@@ -94,7 +120,7 @@ def publish_to_ses(message):
                 Destination={"ToAddresses": [recipient]},
                 Message={
                     "Body":    {"Text":    {"Charset": "UTF-8", "Data": message}},
-                    "Subject": {"Charset": "UTF-8", "Data": "AWS account alert"},
+                    "Subject": {"Charset": "UTF-8", "Data": subject_line},
                 },
                 Source=sender,
             )

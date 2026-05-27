@@ -106,6 +106,117 @@ class ProductEventHandlerTests(unittest.TestCase):
         self.assertLess(len(msg), 1200)
         self.assertIn("…", msg)
 
+    def test_extra_email_recipients_returns_notify_emails_when_channel_set(self):
+        event = self._eb_event(detail={
+            "title": "x",
+            "notify_channels": ["slack", "email"],
+            "notify_emails": ["a@example.com", "b@example.com"],
+        })
+        self.assertEqual(
+            ProductEventHandler().extra_email_recipients(event),
+            ["a@example.com", "b@example.com"],
+        )
+
+    def test_extra_email_recipients_ignored_when_channel_missing(self):
+        # Producer sent the emails but forgot the channel flag — opt-out.
+        event = self._eb_event(detail={
+            "title": "x",
+            "notify_channels": ["slack"],
+            "notify_emails": ["a@example.com"],
+        })
+        self.assertEqual(ProductEventHandler().extra_email_recipients(event), [])
+
+    def test_extra_email_recipients_filters_bad_addresses(self):
+        event = self._eb_event(detail={
+            "title": "x",
+            "notify_channels": ["email"],
+            "notify_emails": ["good@example.com", "", "not-an-email", None, "ok@x.io"],
+        })
+        self.assertEqual(
+            ProductEventHandler().extra_email_recipients(event),
+            ["good@example.com", "ok@x.io"],
+        )
+
+    def test_email_subject_falls_back_to_detail_type_then_default(self):
+        # With title
+        with_title = self._eb_event(detail={"title": "Refund approved"})
+        self.assertEqual(ProductEventHandler().email_subject(with_title), "Refund approved")
+        # Without title — detail-type takes over
+        no_title = self._eb_event(detail_type="custom.thing", detail={})
+        self.assertEqual(ProductEventHandler().email_subject(no_title), "custom.thing")
+
+
+class PublishToSesTests(unittest.TestCase):
+    """Recipient-merge and gating logic in output_utils.publish_to_ses,
+    without making real SES calls — boto3.client is monkey-patched."""
+
+    def setUp(self):
+        import boto3
+        self._real_client = boto3.client
+        self.sent = []
+        def fake_client(name, *a, **kw):
+            if name != "ses":
+                return self._real_client(name, *a, **kw)
+            outer = self
+            class FakeSes:
+                def send_email(self, **kwargs):
+                    outer.sent.append(kwargs)
+                    return {"MessageId": f"msg-{len(outer.sent)}"}
+            return FakeSes()
+        boto3.client = fake_client
+
+        # Reset env per test
+        import os
+        for k in ["enable_ses_email_output", "ses_sender_email", "email_recipients"]:
+            os.environ.pop(k, None)
+
+    def tearDown(self):
+        import boto3
+        boto3.client = self._real_client
+
+    def test_disabled_when_env_flag_off(self):
+        from output_utils import publish_to_ses
+        publish_to_ses("hi", extra_recipients=["x@example.com"])
+        self.assertEqual(self.sent, [])
+
+    def test_disabled_when_sender_unset_even_with_extras(self):
+        import os
+        os.environ["enable_ses_email_output"] = "true"
+        from output_utils import publish_to_ses
+        publish_to_ses("hi", extra_recipients=["x@example.com"])
+        self.assertEqual(self.sent, [])
+
+    def test_no_send_when_no_recipients_anywhere(self):
+        import os
+        os.environ["enable_ses_email_output"] = "true"
+        os.environ["ses_sender_email"] = "noreply@example.com"
+        from output_utils import publish_to_ses
+        publish_to_ses("hi", extra_recipients=[])
+        self.assertEqual(self.sent, [])
+
+    def test_per_event_recipients_only(self):
+        import os
+        os.environ["enable_ses_email_output"] = "true"
+        os.environ["ses_sender_email"] = "noreply@example.com"
+        from output_utils import publish_to_ses
+        publish_to_ses("body", extra_recipients=["a@x.com", "b@x.com"], subject="Hello")
+        self.assertEqual(len(self.sent), 2)
+        self.assertEqual(
+            sorted(s["Destination"]["ToAddresses"][0] for s in self.sent),
+            ["a@x.com", "b@x.com"],
+        )
+        self.assertEqual(self.sent[0]["Message"]["Subject"]["Data"], "Hello")
+
+    def test_static_plus_extras_deduped(self):
+        import os
+        os.environ["enable_ses_email_output"] = "true"
+        os.environ["ses_sender_email"] = "noreply@example.com"
+        os.environ["email_recipients"] = "ops@x.com, a@x.com"
+        from output_utils import publish_to_ses
+        publish_to_ses("body", extra_recipients=["a@x.com", "b@x.com"])
+        addrs = [s["Destination"]["ToAddresses"][0] for s in self.sent]
+        self.assertEqual(addrs, ["ops@x.com", "a@x.com", "b@x.com"])
+
 
 class HandlerChainOrderTests(unittest.TestCase):
     """Belt-and-braces: make sure each handler is only triggered by its

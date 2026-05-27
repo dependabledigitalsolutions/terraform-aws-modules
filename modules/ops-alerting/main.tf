@@ -8,7 +8,11 @@ locals {
   slack_enabled = var.slack_webhook_ssm_parameter_name != null
   teams_enabled = var.teams_webhook_ssm_parameter_name != null
   chime_enabled = var.chime_webhook_ssm_parameter_name != null
-  ses_enabled   = var.ses_sender_email != null && length(var.ses_recipients) > 0
+  # SES is enabled whenever a sender is configured — recipients may be supplied
+  # statically via var.ses_recipients (broadcast pattern) or per-event by a
+  # handler (e.g. ProductEventHandler reading detail.notify_emails). Either is
+  # enough reason to turn the SES output and IAM permission on.
+  ses_enabled = var.ses_sender_email != null
 
   # SSM parameters the Lambda needs IAM read access to.
   ssm_parameter_names = compact([
