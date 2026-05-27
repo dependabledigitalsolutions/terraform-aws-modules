@@ -84,8 +84,8 @@ resource "aws_lambda_function" "alerting" {
     variables = {
       enable_slack_output    = local.slack_enabled ? "true" : "false"
       slack_webhook          = local.slack_enabled ? data.aws_ssm_parameter.slack_webhook[0].value : ""
-      slack_channel_name     = coalesce(var.slack_channel_override, "")
-      slack_webhook_username = coalesce(var.slack_username, "")
+      slack_channel_name     = var.slack_channel_override == null ? "" : var.slack_channel_override
+      slack_webhook_username = var.slack_username == null ? "" : var.slack_username
 
       enable_teams_output = local.teams_enabled ? "true" : "false"
       teams_webhook       = local.teams_enabled ? data.aws_ssm_parameter.teams_webhook[0].value : ""
@@ -94,7 +94,7 @@ resource "aws_lambda_function" "alerting" {
       chime_webhook       = local.chime_enabled ? data.aws_ssm_parameter.chime_webhook[0].value : ""
 
       enable_ses_email_output = local.ses_enabled ? "true" : "false"
-      ses_sender_email        = coalesce(var.ses_sender_email, "")
+      ses_sender_email        = var.ses_sender_email == null ? "" : var.ses_sender_email
       email_recipients        = join(",", var.ses_recipients)
     }
   }
