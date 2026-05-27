@@ -8,7 +8,11 @@ locals {
   slack_enabled = var.slack_webhook_ssm_parameter_name != null
   teams_enabled = var.teams_webhook_ssm_parameter_name != null
   chime_enabled = var.chime_webhook_ssm_parameter_name != null
-  ses_enabled   = var.ses_sender_email != null && length(var.ses_recipients) > 0
+  # SES is enabled whenever a sender is configured — recipients may be supplied
+  # statically via var.ses_recipients (broadcast pattern) or per-event by a
+  # handler (e.g. ProductEventHandler reading detail.notify_emails). Either is
+  # enough reason to turn the SES output and IAM permission on.
+  ses_enabled = var.ses_sender_email != null
 
   # SSM parameters the Lambda needs IAM read access to.
   ssm_parameter_names = compact([
@@ -61,8 +65,14 @@ data "archive_file" "lambda" {
 
   # Unit tests live alongside the handlers so the `from handlers.* import`
   # paths resolve the same way they do in the Lambda runtime, but they
-  # don't belong in the deployed zip.
-  excludes = ["tests", "tests/__init__.py", "tests/test_handlers.py"]
+  # don't belong in the deployed zip. requirements-dev.txt is for local
+  # / CI test setup only — boto3+urllib3 are already in the runtime.
+  excludes = [
+    "tests",
+    "tests/__init__.py",
+    "tests/test_handlers.py",
+    "requirements-dev.txt",
+  ]
 }
 
 resource "aws_cloudwatch_log_group" "lambda" {

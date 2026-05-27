@@ -92,6 +92,18 @@ python -m unittest discover -v
 
 CI runs the same command on every push.
 
+### Per-event SES recipients (dynamic email delivery)
+
+The `ProductEventHandler` reads two extra fields from `detail` to support
+per-recipient email opt-in:
+
+- `detail.notify_channels: ["slack", "email", ...]` — the routing flag the EventBridge rule already pattern-matches on. The handler only sends email when this includes `"email"`.
+- `detail.notify_emails: ["alice@example.com", ...]` — addresses to deliver this specific event to. The producer typically looks these up from a per-user opt-in column (e.g. `profiles.email_notifications`).
+
+These addresses are merged with the static `ses_recipients` set on the module call (deduped, static first). Either source is enough — set `ses_sender_email` alone if every event's audience is per-event, or also set `ses_recipients` for a broadcast list.
+
+SES IAM and the `enable_ses_email_output` env var are now keyed on `ses_sender_email != null` (rather than requiring static recipients). When SES is enabled but neither static nor per-event recipients are present for a given event, the Lambda logs and returns without sending.
+
 ## Rotating a webhook
 
 Update the SSM parameter value (in the AWS console or via CLI) and run `terraform apply` once. The module re-reads the SSM value at apply-time and updates the Lambda env. No code change needed.

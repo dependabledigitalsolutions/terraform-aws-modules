@@ -52,6 +52,10 @@ jobs:
         with:
           python-version: "3.13"
 
+      - name: Install ops-alerting dev deps
+        working-directory: modules/ops-alerting/src/alerting
+        run: pip install -r requirements-dev.txt
+
       - name: ops-alerting handler tests
         working-directory: modules/ops-alerting/src/alerting
         run: python -m unittest discover -v

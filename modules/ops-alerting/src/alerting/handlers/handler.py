@@ -17,3 +17,14 @@ class EventHandler:
     def build_message_string(self, event):
         """Return a multi-line string describing the event."""
         raise NotImplementedError
+
+    def extra_email_recipients(self, event):
+        """Additional SES recipients for this specific event, on top of any
+        static `ses_recipients` configured on the module. Default: none.
+        Override when the event's payload names specific opted-in users."""
+        return []
+
+    def email_subject(self, event):
+        """Subject line for SES delivery of this event. Override for
+        application-domain events where a generic subject is unhelpful."""
+        return "AWS account alert"

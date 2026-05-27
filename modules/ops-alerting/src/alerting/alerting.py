@@ -34,7 +34,11 @@ def lambda_handler(event, context):
         if handler.is_event_as_expected(event):
             message = handler.build_message_string(event)
             logger.info("Formatted by %s: %s", handler.__class__.__name__, message)
-            publish_output(message)
+            publish_output(
+                message,
+                extra_email_recipients=handler.extra_email_recipients(event),
+                subject=handler.email_subject(event),
+            )
             return {"status": "ok", "handler": handler.__class__.__name__}
 
     logger.warning("No handler matched event: %s", event)
