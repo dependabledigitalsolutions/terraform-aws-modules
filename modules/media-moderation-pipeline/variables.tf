@@ -1,6 +1,6 @@
 variable "name" {
   type        = string
-  description = "Prefix for all resource names (e.g., 'arsenal-hub')"
+  description = "Prefix for all resource names."
 }
 
 variable "environment" {

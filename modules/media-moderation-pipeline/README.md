@@ -2,7 +2,7 @@
 
 Reusable pipeline: users submit media (images, GIFs, short videos) → owner moderates submissions from Slack with ✅/❌ buttons → approved media lands on a CDN.
 
-Built initially for arsenal-hub but designed to drop into any DDS project that needs the same shape.
+Designed to drop into any DDS project that needs this shape.
 
 ## What's in the box
 
@@ -37,13 +37,13 @@ Consumers in other regions need to fork the module and override that ARN. v0.1.0
 
 ## Quick start
 
-See `examples/arsenal-hub/` for a runnable consumer that validates.
+See `examples/basic/` for a runnable consumer that validates.
 
 ## Inputs
 
 | Name | Type | Default | Description |
 |------|------|---------|-------------|
-| `name` | string | — | Resource prefix (e.g., `arsenal-hub`). |
+| `name` | string | — | Resource prefix for all module resources. |
 | `environment` | string | — | Environment suffix (e.g., `prod`). |
 | `mood_taxonomy` | list(string) | `[]` | Allowed mood values. Empty = no mood field. |
 | `allowed_content_types` | list(string) | — | MIME types the upload endpoint accepts. |

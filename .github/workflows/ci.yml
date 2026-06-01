@@ -33,7 +33,7 @@ jobs:
           - modules/vpc-ecs-cloudfront
           - modules/ops-alerting
           - modules/media-moderation-pipeline
-          - modules/media-moderation-pipeline/examples/arsenal-hub
+          - modules/media-moderation-pipeline/examples/basic
     steps:
       - uses: actions/checkout@v4
 

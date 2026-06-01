@@ -1,7 +1,5 @@
 # Plan-time-only example. Provides synthetic Secrets Manager ARNs so the
 # module plan validates without standing up real Slack/Google credentials.
-# Apply in a sandbox account if you want to see it end-to-end; the
-# arsenal-hub repo's own infra/prod consumes the real version.
 
 resource "random_pet" "demo_secret_signing" { length = 2 }
 resource "random_pet" "demo_secret_bot" { length = 2 }
