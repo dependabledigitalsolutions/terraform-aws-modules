@@ -145,7 +145,7 @@ export function ddbHelpers(tableName: string) {
       } else {
         queryArgs.ExpressionAttributeValues = { ":pk": "STATUS#approved" };
       }
-      const r = await doc.send(new QueryCommand(queryArgs as Parameters<typeof QueryCommand>[0]));
+      const r = await doc.send(new QueryCommand(queryArgs as ConstructorParameters<typeof QueryCommand>[0]));
       return {
         items: (r.Items ?? []) as ContentRow[],
         nextKey: r.LastEvaluatedKey
