@@ -24,7 +24,7 @@ beforeEach(() => {
   Object.values(mocks).forEach(m => m.mockReset());
   vi.stubGlobal("fetch", mocks.fetchMock);
   mocks.fetchMock.mockResolvedValue({ json: async () => ({ ok: true }) });
-  mocks.smSend.mockResolvedValue({ SecretString: JSON.stringify({ token: "xoxb" }) });
+  mocks.smSend.mockResolvedValue({ SecretString: JSON.stringify({ slack_bot_token: "xoxb" }) });
   Object.assign(process.env, {
     TABLE_NAME: "tbl",
     SLACK_CHANNEL_ID: "C0X",

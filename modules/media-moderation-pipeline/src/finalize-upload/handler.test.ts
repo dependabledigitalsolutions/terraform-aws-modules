@@ -46,7 +46,7 @@ beforeEach(() => {
   mocks.fetchMock.mockResolvedValue({
     json: async () => ({ ok: true, ts: "1234.5678" })
   });
-  mocks.smSend.mockResolvedValue({ SecretString: JSON.stringify({ token: "xoxb-fake" }) });
+  mocks.smSend.mockResolvedValue({ SecretString: JSON.stringify({ slack_bot_token: "xoxb-fake" }) });
   mocks.historyForUploader.mockResolvedValue({ approved: 1, rejected: 0, expired: 0 });
   Object.assign(process.env, {
     TABLE_NAME: "tbl",

@@ -17,7 +17,7 @@ const mc = new MediaConvertClient({});
 
 async function postSlackCard(card: ReturnType<typeof buildSubmissionCard>, channelId: string, botTokenSecretArn: string): Promise<{ ts: string }> {
   const tokenJson = await sm.send(new GetSecretValueCommand({ SecretId: botTokenSecretArn }));
-  const token = JSON.parse(tokenJson.SecretString ?? "{}").token as string;
+  const token = JSON.parse(tokenJson.SecretString ?? "{}").slack_bot_token as string;
   const res = await fetch("https://slack.com/api/chat.postMessage", {
     method: "POST",
     headers: { "content-type": "application/json", authorization: `Bearer ${token}` },

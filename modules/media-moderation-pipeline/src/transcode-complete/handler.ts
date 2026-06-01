@@ -21,7 +21,7 @@ const sm = new SecretsManagerClient({});
 
 async function postSlack(channelId: string, botSecretArn: string, body: object): Promise<void> {
   const secret = await sm.send(new GetSecretValueCommand({ SecretId: botSecretArn }));
-  const token = JSON.parse(secret.SecretString ?? "{}").token;
+  const token = JSON.parse(secret.SecretString ?? "{}").slack_bot_token;
   await fetch("https://slack.com/api/chat.postMessage", {
     method: "POST",
     headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
