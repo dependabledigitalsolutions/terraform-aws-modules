@@ -74,10 +74,12 @@ async function processAction(
     const threadReplies = (replies.messages ?? []).slice(1).filter(m => !m.bot_id);
     if (threadReplies.length > 0) captionOverride = threadReplies[threadReplies.length - 1].text;
 
-    const copyResult = await s3.copyToPublic(id);
+    await s3.copyToPublic(id);
+    const newPublicKey = row.originalKey.replace(/^pending\//, "public/");
+    const newThumbKey = row.thumbKey?.replace(/^pending\//, "public/");
     await ddb.transitionStatus(row.SK, "pending", "approved", {
-      publicKey: copyResult.copiedKeys[0],
-      thumbKey: copyResult.copiedKeys.find(k => k.endsWith("/thumb.webp")),
+      publicKey: newPublicKey,
+      ...(newThumbKey ? { thumbKey: newThumbKey } : {}),
       ...(captionOverride ? { caption: captionOverride } : {}),
       moderation: {
         actor,

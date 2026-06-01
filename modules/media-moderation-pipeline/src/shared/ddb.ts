@@ -91,6 +91,7 @@ export function ddbHelpers(tableName: string) {
       const names: Record<string, string> = { "#s": "status" };
       let i = 0;
       for (const [k, v] of Object.entries(extra)) {
+        if (v === undefined) continue;  // DDB rejects undefined attribute values
         const ph = `:e${i}`;
         const nh = `#e${i}`;
         names[nh] = k;
