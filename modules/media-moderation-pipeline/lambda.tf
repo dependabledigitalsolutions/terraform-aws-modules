@@ -18,7 +18,7 @@ module "sign_upload" {
     {
       path = "${path.module}/src"
       commands = [
-        "npm ci --omit=dev",
+        "npm ci",
         "npm run build:sign-upload",
         ":zip ../dist/sign-upload .",
       ]
@@ -63,7 +63,7 @@ module "finalize_upload" {
     {
       path = "${path.module}/src"
       commands = [
-        "npm ci --omit=dev",
+        "npm ci",
         "npm run build:finalize-upload",
         ":zip ../dist/finalize-upload .",
       ]
@@ -125,7 +125,7 @@ module "slack_interaction" {
     {
       path = "${path.module}/src"
       commands = [
-        "npm ci --omit=dev",
+        "npm ci",
         "npm run build:slack-interaction",
         ":zip ../dist/slack-interaction .",
       ]
@@ -166,7 +166,7 @@ module "transcode_complete" {
     {
       path = "${path.module}/src"
       commands = [
-        "npm ci --omit=dev",
+        "npm ci",
         "npm run build:transcode-complete",
         ":zip ../dist/transcode-complete .",
       ]
@@ -206,7 +206,7 @@ module "list_content" {
     {
       path = "${path.module}/src"
       commands = [
-        "npm ci --omit=dev",
+        "npm ci",
         "npm run build:list-content",
         ":zip ../dist/list-content .",
       ]
