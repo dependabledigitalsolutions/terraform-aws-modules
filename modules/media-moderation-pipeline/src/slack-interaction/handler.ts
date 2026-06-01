@@ -135,25 +135,24 @@ export async function handler(event: APIGatewayProxyEventV2) {
   const params = new URLSearchParams(raw);
   const payload = JSON.parse(params.get("payload") ?? "{}") as SlackInteractionPayload;
 
-  // Slack expects an ack within 3s. Process the work after returning.
-  // In Lambda, scheduled tasks survive after the handler returns; we use
-  // queueMicrotask so the response can flush first.
-  queueMicrotask(async () => {
+  // Slack expects an ack within 3s. Our processAction takes ~1s in
+  // production, so we do the work inline before returning. Lambda
+  // freezes the container after return, so deferred work (e.g. via
+  // queueMicrotask) does not survive — it must be awaited here.
+  try {
+    await processAction(payload, bot, tableName, pending, publicBkt, rebuildQueueUrl);
+  } catch (err) {
+    console.error("slack-interaction follow-up failed", err);
     try {
-      await processAction(payload, bot, tableName, pending, publicBkt, rebuildQueueUrl);
-    } catch (err) {
-      console.error("slack-interaction follow-up failed", err);
-      try {
-        await slackApi(
-          "chat.postMessage",
-          { channel: payload.channel.id, text: `⚠️ Action failed; check logs.` },
-          bot
-        );
-      } catch {
-        // best effort
-      }
+      await slackApi(
+        "chat.postMessage",
+        { channel: payload.channel.id, text: `⚠️ Action failed; check logs.` },
+        bot
+      );
+    } catch {
+      // best effort
     }
-  });
+  }
 
   return { statusCode: 200, body: "" };
 }
