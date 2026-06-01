@@ -1,5 +1,7 @@
 import { SecretsManagerClient, GetSecretValueCommand } from "@aws-sdk/client-secrets-manager";
 import { MediaConvertClient, CreateJobCommand } from "@aws-sdk/client-mediaconvert";
+import { GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { ddbHelpers } from "../shared/ddb";
 import { s3Helpers } from "../shared/s3";
 import { detectMime } from "../shared/magic-bytes";
@@ -14,6 +16,7 @@ interface S3Event { Records: S3EventRecord[] }
 
 const sm = new SecretsManagerClient({});
 const mc = new MediaConvertClient({});
+const thumbS3 = new S3Client({});
 
 async function postSlackCard(card: ReturnType<typeof buildSubmissionCard>, channelId: string, botTokenSecretArn: string): Promise<{ ts: string }> {
   const tokenJson = await sm.send(new GetSecretValueCommand({ SecretId: botTokenSecretArn }));
@@ -110,7 +113,11 @@ export async function handler(event: S3Event) {
     }
 
     const processed = await processImage({ s3, pending, ulid: id, ext: m[2], detected });
-    const thumbUrl = `https://${process.env.CLOUDFRONT_DOMAIN}/${processed.thumbKey}`;
+    const thumbUrl = await getSignedUrl(
+      thumbS3,
+      new GetObjectCommand({ Bucket: pending, Key: processed.thumbKey }),
+      { expiresIn: 86400 }
+    );
     const history = await ddb.historyForUploader(stash.uploaderSub);
     const card = buildSubmissionCard({
       id,

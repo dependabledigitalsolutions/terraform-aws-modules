@@ -149,6 +149,10 @@ data "aws_iam_policy_document" "transcode_complete" {
     actions   = ["secretsmanager:GetSecretValue"]
     resources = [var.slack_bot_token_arn]
   }
+  statement {
+    actions   = ["s3:GetObject"]
+    resources = ["${module.pending_bucket.s3_bucket_arn}/*"]
+  }
 }
 resource "aws_iam_role_policy" "transcode_complete" {
   role   = aws_iam_role.transcode_complete.id

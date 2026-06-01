@@ -4,7 +4,8 @@ const mocks = vi.hoisted(() => ({
   transitionStatus: vi.fn(),
   historyForUploader: vi.fn(),
   smSend: vi.fn(),
-  fetchMock: vi.fn()
+  fetchMock: vi.fn(),
+  getSignedUrl: vi.fn()
 }));
 
 vi.mock("../shared/ddb", () => ({
@@ -17,6 +18,11 @@ vi.mock("@aws-sdk/client-secrets-manager", () => ({
   SecretsManagerClient: vi.fn(() => ({ send: mocks.smSend })),
   GetSecretValueCommand: vi.fn(input => ({ name: "GetSecret", input }))
 }));
+vi.mock("@aws-sdk/s3-request-presigner", () => ({ getSignedUrl: mocks.getSignedUrl }));
+vi.mock("@aws-sdk/client-s3", () => ({
+  S3Client: vi.fn(),
+  GetObjectCommand: vi.fn(input => ({ name: "Get", input }))
+}));
 
 import { handler } from "./handler";
 
@@ -25,11 +31,12 @@ beforeEach(() => {
   vi.stubGlobal("fetch", mocks.fetchMock);
   mocks.fetchMock.mockResolvedValue({ json: async () => ({ ok: true }) });
   mocks.smSend.mockResolvedValue({ SecretString: JSON.stringify({ slack_bot_token: "xoxb" }) });
+  mocks.getSignedUrl.mockResolvedValue("https://signed.example/url");
   Object.assign(process.env, {
     TABLE_NAME: "tbl",
     SLACK_CHANNEL_ID: "C0X",
     SLACK_BOT_TOKEN_ARN: "arn:secret",
-    CLOUDFRONT_DOMAIN: "cdn.example",
+    PENDING_BUCKET: "pending-bucket",
     MAX_VIDEO_DURATION_SECS: "30"
   });
 });
