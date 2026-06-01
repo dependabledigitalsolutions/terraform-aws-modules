@@ -11,6 +11,10 @@ override.tf.json
 *_override.tf
 *_override.tf.json
 
+# Node / TypeScript Lambdas
+**/node_modules/
+**/dist/
+
 # Python
 __pycache__/
 *.pyc
