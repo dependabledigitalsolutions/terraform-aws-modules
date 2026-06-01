@@ -4,7 +4,7 @@ module "sign_upload" {
   version = "~> 7.0"
 
   function_name = "${local.name_prefix}-sign-upload"
-  handler       = "handler.handler"
+  handler       = "index.handler"
   runtime       = local.lambda_runtime
   architectures = [local.lambda_arch]
 
@@ -14,10 +14,17 @@ module "sign_upload" {
   timeout     = 15
   publish     = true
 
-  source_path = [{
-    path                       = "${path.module}/src/sign-upload"
-    npm_package_excluded_paths = ["node_modules", "test", "*.test.ts"]
-  }]
+  source_path = [
+    {
+      path = "${path.module}/src"
+      commands = [
+        "npm ci --omit=dev",
+        "npm run build:sign-upload",
+        ":zip ../dist/sign-upload .",
+      ]
+      patterns = ["!.*"]
+    }
+  ]
 
   environment_variables = {
     TABLE_NAME               = aws_dynamodb_table.main.name
@@ -40,7 +47,7 @@ module "finalize_upload" {
   version = "~> 7.0"
 
   function_name = "${local.name_prefix}-finalize-upload"
-  handler       = "handler.handler"
+  handler       = "index.handler"
   runtime       = local.lambda_runtime
   architectures = [local.lambda_arch]
 
@@ -52,10 +59,17 @@ module "finalize_upload" {
 
   layers = [var.sharp_layer_arn]
 
-  source_path = [{
-    path                       = "${path.module}/src/finalize-upload"
-    npm_package_excluded_paths = ["node_modules", "test", "*.test.ts"]
-  }]
+  source_path = [
+    {
+      path = "${path.module}/src"
+      commands = [
+        "npm ci --omit=dev",
+        "npm run build:finalize-upload",
+        ":zip ../dist/finalize-upload .",
+      ]
+      patterns = ["!.*"]
+    }
+  ]
 
   environment_variables = {
     TABLE_NAME                = aws_dynamodb_table.main.name
@@ -97,7 +111,7 @@ module "slack_interaction" {
   version = "~> 7.0"
 
   function_name = "${local.name_prefix}-slack-interaction"
-  handler       = "handler.handler"
+  handler       = "index.handler"
   runtime       = local.lambda_runtime
   architectures = [local.lambda_arch]
 
@@ -107,10 +121,17 @@ module "slack_interaction" {
   timeout     = 15
   publish     = true
 
-  source_path = [{
-    path                       = "${path.module}/src/slack-interaction"
-    npm_package_excluded_paths = ["node_modules", "test", "*.test.ts"]
-  }]
+  source_path = [
+    {
+      path = "${path.module}/src"
+      commands = [
+        "npm ci --omit=dev",
+        "npm run build:slack-interaction",
+        ":zip ../dist/slack-interaction .",
+      ]
+      patterns = ["!.*"]
+    }
+  ]
 
   environment_variables = {
     TABLE_NAME               = aws_dynamodb_table.main.name
@@ -131,7 +152,7 @@ module "transcode_complete" {
   version = "~> 7.0"
 
   function_name = "${local.name_prefix}-transcode-complete"
-  handler       = "handler.handler"
+  handler       = "index.handler"
   runtime       = local.lambda_runtime
   architectures = [local.lambda_arch]
 
@@ -141,10 +162,17 @@ module "transcode_complete" {
   timeout     = 30
   publish     = true
 
-  source_path = [{
-    path                       = "${path.module}/src/transcode-complete"
-    npm_package_excluded_paths = ["node_modules", "test", "*.test.ts"]
-  }]
+  source_path = [
+    {
+      path = "${path.module}/src"
+      commands = [
+        "npm ci --omit=dev",
+        "npm run build:transcode-complete",
+        ":zip ../dist/transcode-complete .",
+      ]
+      patterns = ["!.*"]
+    }
+  ]
 
   environment_variables = {
     TABLE_NAME              = aws_dynamodb_table.main.name
@@ -164,7 +192,7 @@ module "list_content" {
   version = "~> 7.0"
 
   function_name = "${local.name_prefix}-list-content"
-  handler       = "handler.handler"
+  handler       = "index.handler"
   runtime       = local.lambda_runtime
   architectures = [local.lambda_arch]
 
@@ -174,10 +202,17 @@ module "list_content" {
   timeout     = 10
   publish     = true
 
-  source_path = [{
-    path                       = "${path.module}/src/list-content"
-    npm_package_excluded_paths = ["node_modules", "test", "*.test.ts"]
-  }]
+  source_path = [
+    {
+      path = "${path.module}/src"
+      commands = [
+        "npm ci --omit=dev",
+        "npm run build:list-content",
+        ":zip ../dist/list-content .",
+      ]
+      patterns = ["!.*"]
+    }
+  ]
 
   environment_variables = {
     TABLE_NAME        = aws_dynamodb_table.main.name
