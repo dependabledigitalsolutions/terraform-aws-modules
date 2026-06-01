@@ -57,9 +57,9 @@ beforeEach(() => {
   mocks.smSend
     .mockImplementation(async (cmd: { input: { SecretId: string } }) => {
       if (cmd.input.SecretId.includes("signing")) {
-        return { SecretString: JSON.stringify({ secret: SIGNING_SECRET }) };
+        return { SecretString: JSON.stringify({ slack_signing_secret: SIGNING_SECRET }) };
       }
-      return { SecretString: JSON.stringify({ token: "xoxb-fake" }) };
+      return { SecretString: JSON.stringify({ slack_bot_token: "xoxb-fake" }) };
     });
   Object.assign(process.env, {
     TABLE_NAME: "tbl",

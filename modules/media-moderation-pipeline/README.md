@@ -29,7 +29,7 @@ Consumers in other regions need to fork the module and override that ARN. v0.1.0
 
 ## What the consumer brings
 
-- A Slack app with **signing secret** and **bot token** stored as Secrets Manager secrets at the ARNs you pass in. Each secret's value must be JSON: `{"secret":"…"}` for signing, `{"token":"xoxb-…"}` for bot.
+- A Slack app with **signing secret** and **bot token** stored in Secrets Manager. The recommended pattern is to put both keys on a single secret value as JSON `{"slack_signing_secret":"…","slack_bot_token":"xoxb-…"}` and pass the same ARN for both `slack_signing_secret_arn` and `slack_bot_token_arn` — this lets you consolidate multiple app secrets onto one Secrets Manager secret without key collisions. The legacy two-secret layout (one ARN per key) still works.
 - A Google OAuth client ID (used as the JWT audience claim).
 - A CloudFront distribution that uses `public_bucket_regional_domain_name` as an origin (or your own CDN of choice serving the public bucket).
 - Your own rebuild glue if you want one — subscribe a Lambda to `rebuild_queue_arn`.
@@ -52,8 +52,8 @@ See `examples/basic/` for a runnable consumer that validates.
 | `max_video_duration_secs` | number | `30` | Auto-reject anything longer. |
 | `uploads_per_day_per_user` | number | `5` | Rate limit. |
 | `google_client_id` | string | — | Google OAuth client ID; JWT audience claim. |
-| `slack_signing_secret_arn` | string | — | Secrets Manager ARN; value shape `{"secret":"…"}`. |
-| `slack_bot_token_arn` | string | — | Secrets Manager ARN; value shape `{"token":"xoxb-…"}`. |
+| `slack_signing_secret_arn` | string | — | Secrets Manager ARN; value shape `{"slack_signing_secret":"…"}`. May be the same ARN as `slack_bot_token_arn` if both keys live on one secret. |
+| `slack_bot_token_arn` | string | — | Secrets Manager ARN; value shape `{"slack_bot_token":"xoxb-…"}`. May be the same ARN as `slack_signing_secret_arn`. |
 | `slack_channel_id` | string | — | Slack channel ID where moderation cards land. |
 | `pending_ttl_days` | number | `7` | S3 lifecycle expiry on pending objects. |
 | `cloudfront_domain` | string | — | Hostname approved content is served from. |

@@ -20,11 +20,11 @@ let cachedBotToken: string | undefined;
 async function getSlackSecrets(): Promise<{ signing: string; bot: string }> {
   if (!cachedSigningSecret) {
     const s = await sm.send(new GetSecretValueCommand({ SecretId: process.env.SLACK_SIGNING_SECRET_ARN! }));
-    cachedSigningSecret = JSON.parse(s.SecretString ?? "{}").secret;
+    cachedSigningSecret = JSON.parse(s.SecretString ?? "{}").slack_signing_secret;
   }
   if (!cachedBotToken) {
     const b = await sm.send(new GetSecretValueCommand({ SecretId: process.env.SLACK_BOT_TOKEN_ARN! }));
-    cachedBotToken = JSON.parse(b.SecretString ?? "{}").token;
+    cachedBotToken = JSON.parse(b.SecretString ?? "{}").slack_bot_token;
   }
   return { signing: cachedSigningSecret!, bot: cachedBotToken! };
 }
