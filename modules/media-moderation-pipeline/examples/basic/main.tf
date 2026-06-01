@@ -29,6 +29,7 @@ module "pipeline" {
   slack_bot_token_arn      = aws_secretsmanager_secret.slack_bot.arn
   slack_channel_id         = "C00EXAMPLE"
   cloudfront_domain        = "example.invalid"
+  sharp_layer_arn          = "arn:aws:lambda:eu-west-2:111111111111:layer:sharp:1"
 
   tags = { Project = "media-moderation-example" }
 }

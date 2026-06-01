@@ -1,12 +1,3 @@
-# Public Sharp layer ARN. The published "sharp-layer" by pH200 is the de-facto
-# choice — see https://github.com/pH200/sharp-layer for per-region ARNs.
-# Pinned here for eu-west-2; consumers in other regions need to override
-# this via a future input. For v0.1.0 of the module we only ship eu-west-2.
-locals {
-  # If the consumer is in a different region this will need to change.
-  sharp_layer_arn = "arn:aws:lambda:eu-west-2:063569685987:layer:sharp:1"
-}
-
 # ---------- sign-upload ----------
 module "sign_upload" {
   source  = "terraform-aws-modules/lambda/aws"
@@ -59,7 +50,7 @@ module "finalize_upload" {
   timeout     = 60
   publish     = true
 
-  layers = [local.sharp_layer_arn]
+  layers = [var.sharp_layer_arn]
 
   source_path = [{
     path                       = "${path.module}/src/finalize-upload"

@@ -78,8 +78,9 @@ resource "null_resource" "mediaconvert_job_template" {
   }
 
   provisioner "local-exec" {
-    when    = create
-    command = <<-EOT
+    when        = create
+    interpreter = ["/bin/bash", "-c"]
+    command     = <<-EOT
       set -euo pipefail
       EXISTS=$(aws mediaconvert get-job-template --name "${self.triggers.name}" --query 'JobTemplate.Name' --output text 2>/dev/null || echo "")
       if [ -n "$EXISTS" ] && [ "$EXISTS" != "None" ]; then
@@ -99,8 +100,9 @@ resource "null_resource" "mediaconvert_job_template" {
   }
 
   provisioner "local-exec" {
-    when       = destroy
-    on_failure = continue
-    command    = "aws mediaconvert delete-job-template --name ${self.triggers.name}"
+    when        = destroy
+    interpreter = ["/bin/bash", "-c"]
+    on_failure  = continue
+    command     = "aws mediaconvert delete-job-template --name ${self.triggers.name}"
   }
 }

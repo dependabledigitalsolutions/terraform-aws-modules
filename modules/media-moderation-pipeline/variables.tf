@@ -73,3 +73,8 @@ variable "tags" {
   type    = map(string)
   default = {}
 }
+
+variable "sharp_layer_arn" {
+  description = "ARN of a Lambda layer providing Sharp for arm64 (matches the lambda_arch local). The layer must be in the same account (or shared with it) as the deployer."
+  type        = string
+}
