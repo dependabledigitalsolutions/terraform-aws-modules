@@ -105,7 +105,12 @@ describe("processAction", () => {
   });
 
   it("approve: copies, transitions, enqueues rebuild, updates slack", async () => {
-    mocks.getContentById.mockResolvedValueOnce({ SK: "2026#01HX", id: "01HX" });
+    mocks.getContentById.mockResolvedValueOnce({
+      SK: "2026#01HX",
+      id: "01HX",
+      originalKey: "pending/01HX/original.jpg",
+      thumbKey: "pending/01HX/thumb.webp"
+    });
     mocks.copyToPublic.mockResolvedValueOnce({ copiedKeys: ["public/01HX/original.jpg", "public/01HX/thumb.webp"] });
 
     await __test.processAction(payloadFor("approve"), "xoxb", "tbl", "pending", "public", "https://sqs/queue");
@@ -116,6 +121,8 @@ describe("processAction", () => {
       "pending",
       "approved",
       expect.objectContaining({
+        publicKey: "public/01HX/original.jpg",
+        thumbKey: "public/01HX/thumb.webp",
         moderation: expect.objectContaining({ decision: "approved", actor: "emmanuel@dds.com" })
       })
     );
@@ -143,7 +150,11 @@ describe("processAction", () => {
   });
 
   it("approve with thread reply: caption override is applied", async () => {
-    mocks.getContentById.mockResolvedValueOnce({ SK: "2026#01HX", id: "01HX" });
+    mocks.getContentById.mockResolvedValueOnce({
+      SK: "2026#01HX",
+      id: "01HX",
+      originalKey: "pending/01HX/original.jpg"
+    });
     mocks.copyToPublic.mockResolvedValueOnce({ copiedKeys: ["public/01HX/original.jpg"] });
     mocks.fetchMock.mockResolvedValueOnce({
       json: async () => ({
