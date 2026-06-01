@@ -70,7 +70,7 @@ locals {
     ]
     Inputs = [{
       AudioSelectors = { "Audio Selector 1" = { DefaultSelection = "DEFAULT" } }
-      VideoSelector  = {}
+      VideoSelector  = { Rotate = "AUTO" }
     }]
   })
 }
