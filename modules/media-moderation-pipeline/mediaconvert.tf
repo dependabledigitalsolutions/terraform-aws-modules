@@ -53,8 +53,13 @@ locals {
               Width  = 1280
               Height = 720
               CodecSettings = {
-                Codec                = "FRAME_CAPTURE"
-                FrameCaptureSettings = { Quality = 80, FramerateNumerator = 1, FramerateDenominator = 1 }
+                Codec = "FRAME_CAPTURE"
+                FrameCaptureSettings = {
+                  Quality              = 80
+                  FramerateNumerator   = 1
+                  FramerateDenominator = 1
+                  MaxCaptures          = 1
+                }
               }
             }
             ContainerSettings = { Container = "RAW" }

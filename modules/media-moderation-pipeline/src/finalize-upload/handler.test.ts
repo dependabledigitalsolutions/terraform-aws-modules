@@ -10,7 +10,8 @@ const mocks = vi.hoisted(() => ({
   processImage: vi.fn(),
   mcSend: vi.fn(),
   smSend: vi.fn(),
-  fetchMock: vi.fn()
+  fetchMock: vi.fn(),
+  getSignedUrl: vi.fn()
 }));
 
 vi.mock("../shared/ddb", () => ({
@@ -36,6 +37,11 @@ vi.mock("@aws-sdk/client-secrets-manager", () => ({
   SecretsManagerClient: vi.fn(() => ({ send: mocks.smSend })),
   GetSecretValueCommand: vi.fn(input => ({ name: "GetSecret", input }))
 }));
+vi.mock("@aws-sdk/s3-request-presigner", () => ({ getSignedUrl: mocks.getSignedUrl }));
+vi.mock("@aws-sdk/client-s3", () => ({
+  S3Client: vi.fn(),
+  GetObjectCommand: vi.fn(input => ({ name: "Get", input }))
+}));
 
 import { handler } from "./handler";
 
@@ -48,6 +54,7 @@ beforeEach(() => {
   });
   mocks.smSend.mockResolvedValue({ SecretString: JSON.stringify({ slack_bot_token: "xoxb-fake" }) });
   mocks.historyForUploader.mockResolvedValue({ approved: 1, rejected: 0, expired: 0 });
+  mocks.getSignedUrl.mockResolvedValue("https://signed.example/url");
   Object.assign(process.env, {
     TABLE_NAME: "tbl",
     PENDING_BUCKET: "pending",

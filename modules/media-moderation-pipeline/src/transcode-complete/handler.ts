@@ -1,4 +1,6 @@
 import { SecretsManagerClient, GetSecretValueCommand } from "@aws-sdk/client-secrets-manager";
+import { GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { ddbHelpers } from "../shared/ddb";
 import { buildSubmissionCard } from "../shared/slack-card";
 
@@ -18,22 +20,27 @@ interface MCEvent {
 }
 
 const sm = new SecretsManagerClient({});
+const s3 = new S3Client({});
 
 async function postSlack(channelId: string, botSecretArn: string, body: object): Promise<void> {
   const secret = await sm.send(new GetSecretValueCommand({ SecretId: botSecretArn }));
   const token = JSON.parse(secret.SecretString ?? "{}").slack_bot_token;
-  await fetch("https://slack.com/api/chat.postMessage", {
+  const res = await fetch("https://slack.com/api/chat.postMessage", {
     method: "POST",
     headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
     body: JSON.stringify({ channel: channelId, ...body })
   });
+  const json = await res.json() as { ok: boolean; error?: string };
+  if (!json.ok) {
+    console.error("Slack post failed:", json.error, JSON.stringify(body).slice(0, 500));
+    throw new Error(`Slack chat.postMessage failed: ${json.error}`);
+  }
 }
 
 export async function handler(event: MCEvent) {
   const tableName = process.env.TABLE_NAME!;
   const slackChannel = process.env.SLACK_CHANNEL_ID!;
   const botArn = process.env.SLACK_BOT_TOKEN_ARN!;
-  const cdn = process.env.CLOUDFRONT_DOMAIN!;
   const maxDurSecs = Number(process.env.MAX_VIDEO_DURATION_SECS ?? 30);
 
   const sk = event.detail.userMetadata?.sk;
@@ -60,8 +67,8 @@ export async function handler(event: MCEvent) {
     return;
   }
 
-  const posterKey = `pending/${id}/${id}_poster.0000000.jpg`;
-  const videoKey  = `pending/${id}/${id}_720p.mp4`;
+  const posterKey = `pending/${id}/original_poster.0000000.jpg`;
+  const videoKey  = `pending/${id}/original_720p.mp4`;
 
   const updated = await ddb.transitionStatus(sk, "transcoding", "pending", {
     duration: durationSecs,
@@ -72,6 +79,13 @@ export async function handler(event: MCEvent) {
   });
   if (!updated) return;
 
+  const pendingBucket = process.env.PENDING_BUCKET!;
+  const thumbUrl = await getSignedUrl(
+    s3,
+    new GetObjectCommand({ Bucket: pendingBucket, Key: posterKey }),
+    { expiresIn: 86400 }
+  );
+
   const history = await ddb.historyForUploader(updated.uploaderSub);
   const card = buildSubmissionCard({
     id,
@@ -80,7 +94,7 @@ export async function handler(event: MCEvent) {
     uploaderEmail: updated.uploaderEmail,
     mood: updated.mood,
     caption: updated.caption,
-    thumbUrl: `https://${cdn}/${posterKey}`,
+    thumbUrl: thumbUrl,
     history
   });
   await postSlack(slackChannel, botArn, card);

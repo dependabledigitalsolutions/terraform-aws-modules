@@ -174,7 +174,7 @@ module "transcode_complete" {
     TABLE_NAME              = aws_dynamodb_table.main.name
     SLACK_BOT_TOKEN_ARN     = var.slack_bot_token_arn
     SLACK_CHANNEL_ID        = var.slack_channel_id
-    CLOUDFRONT_DOMAIN       = var.cloudfront_domain
+    PENDING_BUCKET          = module.pending_bucket.s3_bucket_id
     MAX_VIDEO_DURATION_SECS = var.max_video_duration_secs
   }
 
