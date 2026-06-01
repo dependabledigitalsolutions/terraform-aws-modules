@@ -22,7 +22,6 @@ module "sign_upload" {
         "npm run build:sign-upload",
         ":zip ../dist/sign-upload .",
       ]
-      patterns = ["!.*"]
     }
   ]
 
@@ -67,7 +66,6 @@ module "finalize_upload" {
         "npm run build:finalize-upload",
         ":zip ../dist/finalize-upload .",
       ]
-      patterns = ["!.*"]
     }
   ]
 
@@ -129,7 +127,6 @@ module "slack_interaction" {
         "npm run build:slack-interaction",
         ":zip ../dist/slack-interaction .",
       ]
-      patterns = ["!.*"]
     }
   ]
 
@@ -170,7 +167,6 @@ module "transcode_complete" {
         "npm run build:transcode-complete",
         ":zip ../dist/transcode-complete .",
       ]
-      patterns = ["!.*"]
     }
   ]
 
@@ -210,7 +206,6 @@ module "list_content" {
         "npm run build:list-content",
         ":zip ../dist/list-content .",
       ]
-      patterns = ["!.*"]
     }
   ]
 
