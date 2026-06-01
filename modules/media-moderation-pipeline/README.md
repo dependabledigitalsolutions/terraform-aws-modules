@@ -21,11 +21,16 @@ Designed to drop into any DDS project that needs this shape.
 
 ## Sharp Lambda layer
 
-`finalize-upload` runs Sharp from a public Lambda layer pinned in `lambda.tf` to:
+`finalize-upload` runs Sharp from a Lambda layer that the **consumer publishes
+themselves** and passes in via the required `sharp_layer_arn` input. The layer
+must be built for arm64 (matching the module's `lambda_arch`) and must live in
+the same account as the deployer (or be shared with it).
 
-`arn:aws:lambda:eu-west-2:063569685987:layer:sharp:1`
-
-Consumers in other regions need to fork the module and override that ARN. v0.1.0 ships eu-west-2 only.
+A common starting point is the pH200 sharp-layer build
+(https://github.com/pH200/sharp-layer) — clone the zip into your own account
+and publish via `aws lambda publish-layer-version`. The previously hardcoded
+cross-account ARN was inaccessible to most consumers' deployer roles, which
+is why this is now a required input.
 
 ## What the consumer brings
 
@@ -57,6 +62,7 @@ See `examples/basic/` for a runnable consumer that validates.
 | `slack_channel_id` | string | — | Slack channel ID where moderation cards land. |
 | `pending_ttl_days` | number | `7` | S3 lifecycle expiry on pending objects. |
 | `cloudfront_domain` | string | — | Hostname approved content is served from. |
+| `sharp_layer_arn` | string | — | ARN of a Sharp arm64 Lambda layer in (or shared with) the deployer's account. See "Sharp Lambda layer" above. |
 | `tags` | map(string) | `{}` | Extra tags. |
 
 ## Outputs
