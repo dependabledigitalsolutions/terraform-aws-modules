@@ -20,6 +20,10 @@ const ALLOWED = () => (process.env.ALLOWED_CONTENT_TYPES ?? "").split(",").filte
 const MAX_IMG = () => Number(process.env.MAX_IMAGE_SIZE_BYTES ?? 10_485_760);
 const MAX_VID = () => Number(process.env.MAX_VIDEO_SIZE_BYTES ?? 52_428_800);
 const RATE   = () => Number(process.env.UPLOADS_PER_DAY_PER_USER ?? 5);
+const ADMIN_RATE = () => Number(process.env.ADMIN_UPLOADS_PER_DAY_PER_USER ?? RATE());
+const ADMIN_EMAILS = () => new Set(
+  (process.env.ADMIN_EMAILS ?? "").split(",").map(s => s.trim().toLowerCase()).filter(Boolean)
+);
 
 const EXT_OF: Record<string, string> = {
   "image/jpeg": "jpg",
@@ -66,7 +70,9 @@ export async function handler(event: Event) {
   if (await ddb.isBanned(claims.sub)) return reply(403, { error: "banned" });
 
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
-  if (await ddb.countUserUploadsSince(claims.sub, since) >= RATE()) {
+  const isAdmin = !!claims.email && ADMIN_EMAILS().has(claims.email.toLowerCase());
+  const effectiveRate = isAdmin ? ADMIN_RATE() : RATE();
+  if (await ddb.countUserUploadsSince(claims.sub, since) >= effectiveRate) {
     return reply(429, { error: "rate_limited" });
   }
 
