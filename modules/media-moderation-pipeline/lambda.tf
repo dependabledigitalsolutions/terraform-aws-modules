@@ -1,3 +1,28 @@
+# Shared install step. The 5 Lambdas below all bundle from
+# ${path.module}/src — if each ran `npm ci` itself, Terraform's
+# default parallelism would race them on a single node_modules tree
+# and crash with ENOENT/ENOTEMPTY on @aws-sdk/*, @esbuild/*, @nodelib/*.
+# Running `npm ci` once here and making each Lambda depend on it
+# removes the contention: the per-Lambda commands only run esbuild
+# (which writes to its own dist/<name>/ subdir) and zip.
+#
+# Trigger: timestamp() — re-runs every apply. We can't trigger on the
+# package-lock hash alone because TF state persists across CI runners
+# while node_modules does not; a fresh runner with no node_modules
+# would skip install if the lock hadn't changed. `npm ci` with a
+# warm npm cache is ~5–15s.
+resource "null_resource" "shared_install" {
+  triggers = {
+    always_run = timestamp()
+  }
+
+  provisioner "local-exec" {
+    working_dir = "${path.module}/src"
+    command     = "npm ci"
+    interpreter = ["/bin/bash", "-c"]
+  }
+}
+
 # ---------- sign-upload ----------
 module "sign_upload" {
   source  = "terraform-aws-modules/lambda/aws"
@@ -18,7 +43,6 @@ module "sign_upload" {
     {
       path = "${path.module}/src"
       commands = [
-        "npm ci",
         "npm run build:sign-upload",
         ":zip ../dist/sign-upload .",
       ]
@@ -38,6 +62,8 @@ module "sign_upload" {
 
   cloudwatch_logs_retention_in_days = local.lambda_log_retention_days
   tags                              = local.default_tags
+
+  depends_on = [null_resource.shared_install]
 }
 
 # ---------- finalize-upload ----------
@@ -62,7 +88,6 @@ module "finalize_upload" {
     {
       path = "${path.module}/src"
       commands = [
-        "npm ci",
         "npm run build:finalize-upload",
         ":zip ../dist/finalize-upload .",
       ]
@@ -89,6 +114,8 @@ module "finalize_upload" {
 
   cloudwatch_logs_retention_in_days = local.lambda_log_retention_days
   tags                              = local.default_tags
+
+  depends_on = [null_resource.shared_install]
 }
 
 resource "aws_s3_bucket_notification" "pending_finalize" {
@@ -123,7 +150,6 @@ module "slack_interaction" {
     {
       path = "${path.module}/src"
       commands = [
-        "npm ci",
         "npm run build:slack-interaction",
         ":zip ../dist/slack-interaction .",
       ]
@@ -141,6 +167,8 @@ module "slack_interaction" {
 
   cloudwatch_logs_retention_in_days = local.lambda_log_retention_days
   tags                              = local.default_tags
+
+  depends_on = [null_resource.shared_install]
 }
 
 # ---------- transcode-complete ----------
@@ -163,7 +191,6 @@ module "transcode_complete" {
     {
       path = "${path.module}/src"
       commands = [
-        "npm ci",
         "npm run build:transcode-complete",
         ":zip ../dist/transcode-complete .",
       ]
@@ -180,6 +207,8 @@ module "transcode_complete" {
 
   cloudwatch_logs_retention_in_days = local.lambda_log_retention_days
   tags                              = local.default_tags
+
+  depends_on = [null_resource.shared_install]
 }
 
 # ---------- list-content ----------
@@ -202,7 +231,6 @@ module "list_content" {
     {
       path = "${path.module}/src"
       commands = [
-        "npm ci",
         "npm run build:list-content",
         ":zip ../dist/list-content .",
       ]
@@ -216,4 +244,6 @@ module "list_content" {
 
   cloudwatch_logs_retention_in_days = local.lambda_log_retention_days
   tags                              = local.default_tags
+
+  depends_on = [null_resource.shared_install]
 }
