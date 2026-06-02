@@ -37,6 +37,13 @@ module "api" {
         payload_format_version = "2.0"
       }
     }
+    "POST /api/ingest-url" = {
+      integration = {
+        uri                    = module.ingest_url.lambda_function_arn
+        type                   = "AWS_PROXY"
+        payload_format_version = "2.0"
+      }
+    }
   }
 
   tags = local.default_tags
@@ -64,4 +71,12 @@ resource "aws_lambda_permission" "api_list" {
   function_name = module.list_content.lambda_function_name
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${module.api.api_execution_arn}/*/*/api/list-content"
+}
+
+resource "aws_lambda_permission" "api_ingest_url" {
+  statement_id  = "AllowAPIIngestUrl"
+  action        = "lambda:InvokeFunction"
+  function_name = module.ingest_url.lambda_function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${module.api.api_execution_arn}/*/*/api/ingest-url"
 }

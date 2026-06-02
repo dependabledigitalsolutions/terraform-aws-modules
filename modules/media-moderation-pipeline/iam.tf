@@ -160,6 +160,35 @@ resource "aws_iam_role_policy" "transcode_complete" {
   policy = data.aws_iam_policy_document.transcode_complete.json
 }
 
+# ---------- ingest-url (admin) ----------
+resource "aws_iam_role" "ingest_url" {
+  name               = "${local.name_prefix}-ingest-url"
+  assume_role_policy = data.aws_iam_policy_document.lambda_trust.json
+  tags               = local.default_tags
+}
+resource "aws_iam_role_policy_attachment" "ingest_url_basic" {
+  role       = aws_iam_role.ingest_url.name
+  policy_arn = local.lambda_basic_exec
+}
+data "aws_iam_policy_document" "ingest_url" {
+  statement {
+    actions   = ["s3:PutObject"]
+    resources = ["${module.pending_bucket.s3_bucket_arn}/pending/*"]
+  }
+  statement {
+    actions = ["dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:Query"]
+    resources = [
+      aws_dynamodb_table.main.arn,
+      "${aws_dynamodb_table.main.arn}/index/*"
+    ]
+  }
+}
+resource "aws_iam_role_policy" "ingest_url" {
+  role   = aws_iam_role.ingest_url.id
+  name   = "inline"
+  policy = data.aws_iam_policy_document.ingest_url.json
+}
+
 # ---------- list-content ----------
 resource "aws_iam_role" "list_content" {
   name               = "${local.name_prefix}-list-content"
