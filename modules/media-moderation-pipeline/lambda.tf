@@ -213,6 +213,53 @@ module "transcode_complete" {
   depends_on = [null_resource.shared_install]
 }
 
+# ---------- ingest-url (admin) ----------
+module "ingest_url" {
+  source  = "terraform-aws-modules/lambda/aws"
+  version = "~> 7.0"
+
+  function_name = "${local.name_prefix}-ingest-url"
+  handler       = "index.handler"
+  runtime       = local.lambda_runtime
+  architectures = [local.lambda_arch]
+
+  create_role = false
+  lambda_role = aws_iam_role.ingest_url.arn
+  # 60s timeout: server-side downloads of ~10 MB images on slow upstream.
+  # 1024 MB so the whole file fits comfortably in memory before the PutObject.
+  memory_size = 1024
+  timeout     = 60
+  publish     = true
+
+  source_path = [
+    {
+      path = "${path.module}/src"
+      commands = [
+        "npm run build:ingest-url",
+        ":zip ../dist/ingest-url .",
+      ]
+    }
+  ]
+
+  environment_variables = {
+    TABLE_NAME                     = aws_dynamodb_table.main.name
+    PENDING_BUCKET                 = module.pending_bucket.s3_bucket_id
+    PUBLIC_BUCKET                  = module.public_bucket.s3_bucket_id
+    GOOGLE_CLIENT_ID               = var.google_client_id
+    ALLOWED_CONTENT_TYPES          = join(",", var.allowed_content_types)
+    MAX_IMAGE_SIZE_BYTES           = var.max_image_size_bytes
+    MAX_VIDEO_SIZE_BYTES           = var.max_video_size_bytes
+    UPLOADS_PER_DAY_PER_USER       = var.uploads_per_day_per_user
+    ADMIN_EMAILS                   = join(",", var.admin_emails)
+    ADMIN_UPLOADS_PER_DAY_PER_USER = var.admin_uploads_per_day_per_user
+  }
+
+  cloudwatch_logs_retention_in_days = local.lambda_log_retention_days
+  tags                              = local.default_tags
+
+  depends_on = [null_resource.shared_install]
+}
+
 # ---------- list-content ----------
 module "list_content" {
   source  = "terraform-aws-modules/lambda/aws"
