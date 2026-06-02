@@ -39,6 +39,18 @@ variable "uploads_per_day_per_user" {
   default = 5
 }
 
+variable "admin_emails" {
+  type        = list(string)
+  default     = []
+  description = "Email addresses (matched against the Google id_token 'email' claim) treated as admins. Admin uploads are subject to admin_uploads_per_day_per_user instead of the regular cap."
+}
+
+variable "admin_uploads_per_day_per_user" {
+  type        = number
+  default     = 500
+  description = "Daily upload cap for admin emails. Used for one-off bulk-seed runs; keep it high enough for an initial import but not unlimited."
+}
+
 variable "google_client_id" {
   type        = string
   description = "Google OAuth client ID used as the JWT audience claim."

@@ -84,4 +84,29 @@ describe("sign-upload handler", () => {
     const r = await handler(evt({ filename: "x.jpg", contentType: "image/jpeg", contentLength: 100 * 1024 * 1024, mood: "trophy" }));
     expect(r.statusCode).toBe(413);
   });
+
+  it("admin email gets the admin rate limit", async () => {
+    process.env.ADMIN_EMAILS = "admin@example.com,j@g.com";
+    process.env.ADMIN_UPLOADS_PER_DAY_PER_USER = "50";
+    // Just under admin cap, above regular cap (5).
+    mocks.countUserUploadsSince.mockResolvedValueOnce(20);
+    const r = await handler(evt({ filename: "x.jpg", contentType: "image/jpeg", contentLength: 10, mood: "trophy" }));
+    expect(r.statusCode).toBe(200);
+  });
+
+  it("admin email still hits 429 above the admin cap", async () => {
+    process.env.ADMIN_EMAILS = "j@g.com";
+    process.env.ADMIN_UPLOADS_PER_DAY_PER_USER = "10";
+    mocks.countUserUploadsSince.mockResolvedValueOnce(10);
+    const r = await handler(evt({ filename: "x.jpg", contentType: "image/jpeg", contentLength: 10, mood: "trophy" }));
+    expect(r.statusCode).toBe(429);
+  });
+
+  it("non-admin email obeys the regular cap even when ADMIN_EMAILS set", async () => {
+    process.env.ADMIN_EMAILS = "someone-else@example.com";
+    process.env.ADMIN_UPLOADS_PER_DAY_PER_USER = "999";
+    mocks.countUserUploadsSince.mockResolvedValueOnce(5);
+    const r = await handler(evt({ filename: "x.jpg", contentType: "image/jpeg", contentLength: 10, mood: "trophy" }));
+    expect(r.statusCode).toBe(429);
+  });
 });

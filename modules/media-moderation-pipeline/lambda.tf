@@ -50,14 +50,16 @@ module "sign_upload" {
   ]
 
   environment_variables = {
-    TABLE_NAME               = aws_dynamodb_table.main.name
-    PENDING_BUCKET           = module.pending_bucket.s3_bucket_id
-    PUBLIC_BUCKET            = module.public_bucket.s3_bucket_id
-    GOOGLE_CLIENT_ID         = var.google_client_id
-    ALLOWED_CONTENT_TYPES    = join(",", var.allowed_content_types)
-    MAX_IMAGE_SIZE_BYTES     = var.max_image_size_bytes
-    MAX_VIDEO_SIZE_BYTES     = var.max_video_size_bytes
-    UPLOADS_PER_DAY_PER_USER = var.uploads_per_day_per_user
+    TABLE_NAME                     = aws_dynamodb_table.main.name
+    PENDING_BUCKET                 = module.pending_bucket.s3_bucket_id
+    PUBLIC_BUCKET                  = module.public_bucket.s3_bucket_id
+    GOOGLE_CLIENT_ID               = var.google_client_id
+    ALLOWED_CONTENT_TYPES          = join(",", var.allowed_content_types)
+    MAX_IMAGE_SIZE_BYTES           = var.max_image_size_bytes
+    MAX_VIDEO_SIZE_BYTES           = var.max_video_size_bytes
+    UPLOADS_PER_DAY_PER_USER       = var.uploads_per_day_per_user
+    ADMIN_EMAILS                   = join(",", var.admin_emails)
+    ADMIN_UPLOADS_PER_DAY_PER_USER = var.admin_uploads_per_day_per_user
   }
 
   cloudwatch_logs_retention_in_days = local.lambda_log_retention_days
