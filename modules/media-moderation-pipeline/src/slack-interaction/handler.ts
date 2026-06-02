@@ -45,6 +45,36 @@ interface SlackInteractionPayload {
   channel: { id: string };
 }
 
+interface ReplyMessage { text: string; user?: string; bot_id?: string }
+interface RepliesResponse { ok?: boolean; error?: string; messages?: ReplyMessage[] }
+
+// `conversations.replies` can lag a beat behind a just-sent reply,
+// especially when the moderator types on mobile and immediately taps
+// Approve. If the first call shows no thread replies, wait once and
+// retry — gives Slack time to index. Both attempts log a one-line
+// summary so we can diagnose silent failures from CloudWatch.
+async function readLatestThreadReply(
+  channel: string,
+  ts: string,
+  bot: string
+): Promise<string | undefined> {
+  const delayMs = Number(process.env.SLACK_REPLIES_RETRY_DELAY_MS ?? 1500);
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    const r = (await slackApi("conversations.replies", { channel, ts }, bot)) as RepliesResponse;
+    const messages = r.messages ?? [];
+    const nonBot = messages.slice(1).filter(m => !m.bot_id);
+    console.log("conversations.replies attempt", attempt, JSON.stringify({
+      ok: r.ok,
+      error: r.error,
+      total: messages.length,
+      nonBot: nonBot.length
+    }));
+    if (nonBot.length > 0) return nonBot[nonBot.length - 1].text;
+    if (attempt === 1) await new Promise(res => setTimeout(res, delayMs));
+  }
+  return undefined;
+}
+
 async function processAction(
   payload: SlackInteractionPayload,
   bot: string,
@@ -64,15 +94,10 @@ async function processAction(
   const row = await ddb.getContentById(id);
   if (!row) return;
 
+  let captionApplied: string | undefined;
   if (decision === "approved") {
-    let captionOverride: string | undefined;
-    const replies = (await slackApi(
-      "conversations.replies",
-      { channel: payload.channel.id, ts: payload.message.ts },
-      bot
-    )) as { messages?: Array<{ text: string; user?: string; bot_id?: string }> };
-    const threadReplies = (replies.messages ?? []).slice(1).filter(m => !m.bot_id);
-    if (threadReplies.length > 0) captionOverride = threadReplies[threadReplies.length - 1].text;
+    const captionOverride = await readLatestThreadReply(payload.channel.id, payload.message.ts, bot);
+    if (captionOverride) captionApplied = captionOverride;
 
     await s3.copyToPublic(id);
     const newPublicKey = row.originalKey.replace(/^pending\//, "public/");
@@ -110,7 +135,7 @@ async function processAction(
     {
       channel: payload.channel.id,
       ts: payload.message.ts,
-      ...buildDecisionUpdate({ id, decision, actor, decidedAtIso: new Date().toISOString() })
+      ...buildDecisionUpdate({ id, decision, actor, decidedAtIso: new Date().toISOString(), captionApplied })
     },
     bot
   );

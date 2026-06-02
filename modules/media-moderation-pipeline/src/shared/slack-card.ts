@@ -54,6 +54,7 @@ export interface BuildDecisionInput {
   actor: string;
   decidedAtIso: string;
   liveInSeconds?: number;
+  captionApplied?: string;
 }
 
 export function buildDecisionUpdate(input: BuildDecisionInput): SlackBlockKitMessage {
@@ -61,10 +62,13 @@ export function buildDecisionUpdate(input: BuildDecisionInput): SlackBlockKitMes
   const time = input.decidedAtIso.slice(11, 16);
   const verb = input.decision === "approved" ? "✅ Approved" : "❌ Rejected";
   const tail = input.decision === "approved" ? ` — live in ~${input.liveInSeconds ?? 60}s` : "";
-  const text = `${verb} by ${actorShort} at ${time}${tail}`;
+  const captionLine = input.captionApplied
+    ? `\nCaption set to: _${escapeMrkdwn(input.captionApplied)}_`
+    : "";
+  const text = `${verb} by ${actorShort} at ${time}${tail}${captionLine}`;
   return {
     text,
-    blocks: [{ type: "section", text: { type: "mrkdwn", text: `*${text}*` } }]
+    blocks: [{ type: "section", text: { type: "mrkdwn", text: `*${verb} by ${actorShort} at ${time}${tail}*${captionLine}` } }]
   };
 }
 
