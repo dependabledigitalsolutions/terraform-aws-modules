@@ -67,7 +67,8 @@ beforeEach(() => {
     PUBLIC_BUCKET: "public",
     REBUILD_QUEUE_URL: "https://sqs/queue",
     SLACK_SIGNING_SECRET_ARN: "arn:secret:signing",
-    SLACK_BOT_TOKEN_ARN: "arn:secret:bot"
+    SLACK_BOT_TOKEN_ARN: "arn:secret:bot",
+    SLACK_REPLIES_RETRY_DELAY_MS: "0"
   });
 });
 
@@ -149,7 +150,7 @@ describe("processAction", () => {
     expect(mocks.sqsSend).not.toHaveBeenCalled();
   });
 
-  it("approve with thread reply: caption override is applied", async () => {
+  it("approve with thread reply: caption override is applied + echoed in chat.update", async () => {
     mocks.getContentById.mockResolvedValueOnce({
       SK: "2026#01HX",
       id: "01HX",
@@ -165,13 +166,50 @@ describe("processAction", () => {
         ]
       })
     });
-    // subsequent fetches return ok
     mocks.fetchMock.mockResolvedValue({ json: async () => ({ ok: true }) });
 
     await __test.processAction(payloadFor("approve"), "xoxb", "tbl", "pending", "public", "https://sqs/queue");
 
     const call = mocks.transitionStatus.mock.calls[0];
     expect(call[3]).toMatchObject({ caption: "Better caption" });
+
+    const updateCall = mocks.fetchMock.mock.calls.find(c => c[0].endsWith("/chat.update"));
+    expect(updateCall).toBeDefined();
+    const body = JSON.parse((updateCall![1] as { body: string }).body);
+    expect(body.text).toContain("Caption set to");
+    expect(body.text).toContain("Better caption");
+  });
+
+  it("approve with delayed thread reply: retries once + applies caption", async () => {
+    mocks.getContentById.mockResolvedValueOnce({
+      SK: "2026#01HX",
+      id: "01HX",
+      originalKey: "pending/01HX/original.jpg"
+    });
+    mocks.copyToPublic.mockResolvedValueOnce({ copiedKeys: ["public/01HX/original.jpg"] });
+    // First conversations.replies: only the original bot card, no user reply yet.
+    mocks.fetchMock.mockResolvedValueOnce({
+      json: async () => ({ ok: true, messages: [{ text: "original card", bot_id: "B1" }] })
+    });
+    // Second attempt (after retry delay): the user's reply has landed.
+    mocks.fetchMock.mockResolvedValueOnce({
+      json: async () => ({
+        ok: true,
+        messages: [
+          { text: "original card", bot_id: "B1" },
+          { text: "Late-arriving caption", user: "U1" }
+        ]
+      })
+    });
+    mocks.fetchMock.mockResolvedValue({ json: async () => ({ ok: true }) });
+
+    await __test.processAction(payloadFor("approve"), "xoxb", "tbl", "pending", "public", "https://sqs/queue");
+
+    const call = mocks.transitionStatus.mock.calls[0];
+    expect(call[3]).toMatchObject({ caption: "Late-arriving caption" });
+    // 2 conversations.replies + 1 chat.update = 3 slack calls total
+    const repliesCalls = mocks.fetchMock.mock.calls.filter(c => c[0].endsWith("/conversations.replies"));
+    expect(repliesCalls.length).toBe(2);
   });
 
   it("missing row: no-op", async () => {
