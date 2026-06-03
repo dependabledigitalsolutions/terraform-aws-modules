@@ -1,5 +1,16 @@
 import { ddbHelpers } from "../shared/ddb";
 
+const REACTION_KEYS = ["red", "goal", "hands", "goat", "mind"] as const;
+
+function pickReactions(row: Record<string, unknown>): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const key of REACTION_KEYS) {
+    const v = row[`reaction_${key}`];
+    if (typeof v === "number" && v > 0) out[key] = v;
+  }
+  return out;
+}
+
 interface Event {
   queryStringParameters?: { mood?: string; limit?: string; nextKey?: string };
 }
@@ -25,7 +36,8 @@ export async function handler(event: Event) {
     duration: row.duration,
     width: row.width,
     height: row.height,
-    createdAt: row.createdAt
+    createdAt: row.createdAt,
+    reactions: pickReactions(row as unknown as Record<string, unknown>)
   }));
   const body = {
     items,

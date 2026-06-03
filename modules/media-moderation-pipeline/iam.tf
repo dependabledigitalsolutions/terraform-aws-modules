@@ -214,6 +214,31 @@ resource "aws_iam_role_policy" "list_content" {
   policy = data.aws_iam_policy_document.list_content.json
 }
 
+# ---------- react (anonymous emoji reactions) ----------
+resource "aws_iam_role" "react" {
+  name               = "${local.name_prefix}-react"
+  assume_role_policy = data.aws_iam_policy_document.lambda_trust.json
+  tags               = local.default_tags
+}
+resource "aws_iam_role_policy_attachment" "react_basic" {
+  role       = aws_iam_role.react.name
+  policy_arn = local.lambda_basic_exec
+}
+data "aws_iam_policy_document" "react" {
+  statement {
+    actions = ["dynamodb:Query", "dynamodb:UpdateItem"]
+    resources = [
+      aws_dynamodb_table.main.arn,
+      "${aws_dynamodb_table.main.arn}/index/*"
+    ]
+  }
+}
+resource "aws_iam_role_policy" "react" {
+  role   = aws_iam_role.react.id
+  name   = "inline"
+  policy = data.aws_iam_policy_document.react.json
+}
+
 # ---------- MediaConvert role ----------
 data "aws_iam_policy_document" "mediaconvert_trust" {
   statement {

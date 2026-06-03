@@ -15,8 +15,9 @@
     "build:transcode-complete": "esbuild transcode-complete/handler.ts --bundle --platform=node --target=node20 --format=esm --external:@aws-sdk/* --external:sharp --outfile=../dist/transcode-complete/index.mjs --banner:js='import{createRequire}from\"module\";const require=createRequire(import.meta.url);'",
     "build:list-content":       "esbuild list-content/handler.ts       --bundle --platform=node --target=node20 --format=esm --external:@aws-sdk/* --external:sharp --outfile=../dist/list-content/index.mjs       --banner:js='import{createRequire}from\"module\";const require=createRequire(import.meta.url);'",
     "build:ingest-url":         "esbuild ingest-url/handler.ts         --bundle --platform=node --target=node20 --format=esm --external:@aws-sdk/* --external:sharp --outfile=../dist/ingest-url/index.mjs         --banner:js='import{createRequire}from\"module\";const require=createRequire(import.meta.url);'",
+    "build:react":              "esbuild react/handler.ts              --bundle --platform=node --target=node20 --format=esm --external:@aws-sdk/* --external:sharp --outfile=../dist/react/index.mjs              --banner:js='import{createRequire}from\"module\";const require=createRequire(import.meta.url);'",
     "build:cron-cleanup":       "esbuild cron-cleanup/handler.ts       --bundle --platform=node --target=node20 --format=esm --external:@aws-sdk/* --external:sharp --outfile=../dist/cron-cleanup/index.mjs       --banner:js='import{createRequire}from\"module\";const require=createRequire(import.meta.url);'",
-    "build": "npm run build:sign-upload && npm run build:finalize-upload && npm run build:slack-interaction && npm run build:transcode-complete && npm run build:list-content && npm run build:ingest-url && npm run build:cron-cleanup"
+    "build": "npm run build:sign-upload && npm run build:finalize-upload && npm run build:slack-interaction && npm run build:transcode-complete && npm run build:list-content && npm run build:ingest-url && npm run build:react && npm run build:cron-cleanup"
   },
   "dependencies": {
     "@aws-sdk/client-cloudfront": "^3.654.0",

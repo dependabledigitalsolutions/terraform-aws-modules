@@ -260,6 +260,42 @@ module "ingest_url" {
   depends_on = [null_resource.shared_install]
 }
 
+# ---------- react (anonymous emoji reactions) ----------
+module "react" {
+  source  = "terraform-aws-modules/lambda/aws"
+  version = "~> 7.0"
+
+  function_name = "${local.name_prefix}-react"
+  handler       = "index.handler"
+  runtime       = local.lambda_runtime
+  architectures = [local.lambda_arch]
+
+  create_role = false
+  lambda_role = aws_iam_role.react.arn
+  memory_size = 256
+  timeout     = 10
+  publish     = true
+
+  source_path = [
+    {
+      path = "${path.module}/src"
+      commands = [
+        "npm run build:react",
+        ":zip ../dist/react .",
+      ]
+    }
+  ]
+
+  environment_variables = {
+    TABLE_NAME = aws_dynamodb_table.main.name
+  }
+
+  cloudwatch_logs_retention_in_days = local.lambda_log_retention_days
+  tags                              = local.default_tags
+
+  depends_on = [null_resource.shared_install]
+}
+
 # ---------- list-content ----------
 module "list_content" {
   source  = "terraform-aws-modules/lambda/aws"
