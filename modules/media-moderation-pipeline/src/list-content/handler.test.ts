@@ -77,4 +77,22 @@ describe("list-content handler", () => {
     await handler({ queryStringParameters: { limit: "500" } });
     expect(mocks.listApproved).toHaveBeenCalledWith(expect.objectContaining({ limit: 100 }));
   });
+
+  it("surfaces non-zero reaction_* attrs as a reactions map", async () => {
+    mocks.listApproved.mockResolvedValueOnce({
+      items: [{
+        id: "01HX",
+        type: "image",
+        uploaderName: "Jane",
+        createdAt: "2026-06-01T12:00:00Z",
+        reaction_red: 5,
+        reaction_goal: 0,            // zero filtered out
+        reaction_hands: 12
+      }],
+      nextKey: undefined
+    });
+    const r = await handler({});
+    const body = JSON.parse(r.body);
+    expect(body.items[0].reactions).toEqual({ red: 5, hands: 12 });
+  });
 });

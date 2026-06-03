@@ -44,6 +44,13 @@ module "api" {
         payload_format_version = "2.0"
       }
     }
+    "POST /api/react" = {
+      integration = {
+        uri                    = module.react.lambda_function_arn
+        type                   = "AWS_PROXY"
+        payload_format_version = "2.0"
+      }
+    }
   }
 
   tags = local.default_tags
@@ -79,4 +86,12 @@ resource "aws_lambda_permission" "api_ingest_url" {
   function_name = module.ingest_url.lambda_function_name
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${module.api.api_execution_arn}/*/*/api/ingest-url"
+}
+
+resource "aws_lambda_permission" "api_react" {
+  statement_id  = "AllowAPIReact"
+  action        = "lambda:InvokeFunction"
+  function_name = module.react.lambda_function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${module.api.api_execution_arn}/*/*/api/react"
 }
