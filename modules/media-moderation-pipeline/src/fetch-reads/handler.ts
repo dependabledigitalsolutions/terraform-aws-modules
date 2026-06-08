@@ -64,15 +64,54 @@ function stripHtml(s: string): string {
   return s.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
 }
 
-// First <img src="…"> in the description, when present. Most WordPress
-// feeds embed the featured image at the top of the description; this
-// gives every card a thumbnail with no extra HTTP fetch.
-function firstImage(s: string): string | undefined {
-  const m = s.match(/<img[^>]+src=["']([^"']+)["']/i);
-  if (!m) return undefined;
-  const url = m[1].trim();
-  if (!/^https?:\/\//.test(url)) return undefined;
-  return url;
+// Resolve a thumbnail URL for an RSS item by checking, in order:
+//   1. <img src="…"> inside the description (WordPress default)
+//   2. <media:thumbnail url="…"> (Media RSS extension)
+//   3. <media:content url="…" type="image/…"> (Media RSS extension)
+//   4. <enclosure url="…" type="image/…">
+// Different publishers use different shapes — Arseblog embeds <img> in
+// the description, football.london and Daily Cannon use the media:
+// namespace, etc. Return the first non-empty match.
+function firstImage(item: Record<string, unknown>, descRaw: string): string | undefined {
+  const m = descRaw.match(/<img[^>]+src=["']([^"']+)["']/i);
+  if (m) {
+    const url = m[1].trim();
+    if (/^https?:\/\//.test(url)) return url;
+  }
+
+  // media:thumbnail and media:content — fast-xml-parser keeps the
+  // namespace prefix in the key. Single or array — handle both.
+  for (const key of ["media:thumbnail", "media:content"]) {
+    const node = item[key];
+    if (!node) continue;
+    const arr = Array.isArray(node) ? node : [node];
+    for (const n of arr) {
+      const url = (n as Record<string, unknown>)?.["@_url"];
+      const type = (n as Record<string, unknown>)?.["@_type"];
+      if (typeof url === "string" && /^https?:\/\//.test(url)) {
+        // media:thumbnail has no type; media:content's type may not be set.
+        // For media:content, only accept if type is missing or image/*.
+        if (key === "media:content" && typeof type === "string" && !type.startsWith("image/")) continue;
+        return url;
+      }
+    }
+  }
+
+  // <enclosure url="…" type="image/jpeg">
+  const enc = item.enclosure;
+  if (enc) {
+    const arr = Array.isArray(enc) ? enc : [enc];
+    for (const e of arr) {
+      const url = (e as Record<string, unknown>)?.["@_url"];
+      const type = (e as Record<string, unknown>)?.["@_type"];
+      if (typeof url === "string" && /^https?:\/\//.test(url) &&
+          (typeof type !== "string" || type.startsWith("image/"))) {
+        return url;
+      }
+    }
+  }
+
+  return undefined;
 }
 
 // Handles both RSS 2.0 (channel.item) and Atom (feed.entry). Returns
@@ -99,7 +138,7 @@ export function parseFeedXml(xml: string): ParsedItem[] {
         const title = stripHtml(asString(item.title));
         const descRaw = asString(item.description);
         const summary = stripHtml(descRaw);
-        const image = firstImage(descRaw);
+        const image = firstImage(item, descRaw);
         const publishedAt = parseDate(asString(item.pubDate));
         if (!url || !title) return null;
         return { url, title, summary: summary || undefined, image, publishedAt };
@@ -129,7 +168,7 @@ export function parseFeedXml(xml: string): ParsedItem[] {
         const title = stripHtml(asString(item.title));
         const descRaw = asString(item.summary) || asString(item.content);
         const summary = stripHtml(descRaw);
-        const image = firstImage(descRaw);
+        const image = firstImage(item, descRaw);
         const publishedAt = parseDate(asString(item.published) || asString(item.updated));
         if (!url || !title) return null;
         return { url, title, summary: summary || undefined, image, publishedAt };
