@@ -45,6 +45,7 @@ interface ParsedItem {
   url: string;
   title: string;
   summary?: string;
+  image?: string;
   publishedAt: string;
 }
 
@@ -61,6 +62,17 @@ function asString(v: unknown): string {
 
 function stripHtml(s: string): string {
   return s.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
+}
+
+// First <img src="…"> in the description, when present. Most WordPress
+// feeds embed the featured image at the top of the description; this
+// gives every card a thumbnail with no extra HTTP fetch.
+function firstImage(s: string): string | undefined {
+  const m = s.match(/<img[^>]+src=["']([^"']+)["']/i);
+  if (!m) return undefined;
+  const url = m[1].trim();
+  if (!/^https?:\/\//.test(url)) return undefined;
+  return url;
 }
 
 // Handles both RSS 2.0 (channel.item) and Atom (feed.entry). Returns
@@ -85,10 +97,12 @@ export function parseFeedXml(xml: string): ParsedItem[] {
         const item = it as Record<string, unknown>;
         const url = asString(item.link) || asString(item.guid);
         const title = stripHtml(asString(item.title));
-        const summary = stripHtml(asString(item.description));
+        const descRaw = asString(item.description);
+        const summary = stripHtml(descRaw);
+        const image = firstImage(descRaw);
         const publishedAt = parseDate(asString(item.pubDate));
         if (!url || !title) return null;
-        return { url, title, summary: summary || undefined, publishedAt };
+        return { url, title, summary: summary || undefined, image, publishedAt };
       })
       .filter((x): x is ParsedItem => x !== null);
   }
@@ -113,10 +127,12 @@ export function parseFeedXml(xml: string): ParsedItem[] {
           url = linkVal;
         }
         const title = stripHtml(asString(item.title));
-        const summary = stripHtml(asString(item.summary) || asString(item.content));
+        const descRaw = asString(item.summary) || asString(item.content);
+        const summary = stripHtml(descRaw);
+        const image = firstImage(descRaw);
         const publishedAt = parseDate(asString(item.published) || asString(item.updated));
         if (!url || !title) return null;
-        return { url, title, summary: summary || undefined, publishedAt };
+        return { url, title, summary: summary || undefined, image, publishedAt };
       })
       .filter((x): x is ParsedItem => x !== null);
   }
@@ -150,11 +166,15 @@ async function processFeed(feed: Feed, tableName: string): Promise<{ added: numb
       source: feed.source,
       title: item.title,
       summary: item.summary,
+      image: item.image,
       publishedAt: item.publishedAt,
       fetchedAt,
       ttl
     };
     try {
+      // DDB rejects undefined attribute values — strip the image key when
+      // we didn't find one in the description.
+      if (!row.image) delete (row as Partial<ReadRow>).image;
       await doc.send(new PutCommand({
         TableName: tableName,
         Item: row,

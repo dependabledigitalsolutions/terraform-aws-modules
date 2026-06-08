@@ -23,7 +23,7 @@ const RSS_FIXTURE = `<?xml version="1.0" encoding="UTF-8"?>
     <item>
       <title>Match preview: Arsenal vs Chelsea</title>
       <link>https://arseblog.com/2026/06/preview-chelsea/</link>
-      <description><![CDATA[<p>Big game on Saturday. Here's how it'll go.</p>]]></description>
+      <description><![CDATA[<img src="https://arseblog.com/wp-content/uploads/preview.jpg" alt="Arteta" /><p>Big game on Saturday. Here's how it'll go.</p>]]></description>
       <pubDate>Wed, 03 Jun 2026 09:00:00 +0100</pubDate>
       <guid>https://arseblog.com/2026/06/preview-chelsea/</guid>
     </item>
@@ -61,11 +61,15 @@ describe("parseFeedXml", () => {
     expect(items[0]).toMatchObject({
       url: "https://arseblog.com/2026/06/preview-chelsea/",
       title: "Match preview: Arsenal vs Chelsea",
-      summary: "Big game on Saturday. Here's how it'll go."
+      summary: "Big game on Saturday. Here's how it'll go.",
+      image: "https://arseblog.com/wp-content/uploads/preview.jpg"
     });
     expect(items[0].publishedAt).toMatch(/2026-06-03/);
-    // CDATA + HTML tags stripped
+    // CDATA + HTML tags stripped (the <img> too)
     expect(items[0].summary).not.toContain("<p>");
+    expect(items[0].summary).not.toContain("<img");
+    // No image in the second item — description has no <img>
+    expect(items[1].image).toBeUndefined();
   });
 
   it("parses Atom entries with rel=alternate link", () => {
