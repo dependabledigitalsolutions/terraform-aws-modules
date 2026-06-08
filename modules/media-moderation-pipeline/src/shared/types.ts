@@ -62,6 +62,7 @@ export interface ReadRow {
   source: string;                     // human label, e.g. "Arseblog"
   title: string;
   summary?: string;
+  image?: string;                     // first <img> extracted from the description, when present
   publishedAt: string;                // iso
   fetchedAt: string;                  // iso
   ttl: number;                        // unix epoch — auto-prune older entries

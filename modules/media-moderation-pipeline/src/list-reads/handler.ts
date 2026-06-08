@@ -39,6 +39,7 @@ export async function handler(event: Event) {
       source: row.source,
       title: row.title,
       summary: row.summary,
+      image: row.image,
       publishedAt: row.publishedAt
     };
   });
