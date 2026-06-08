@@ -296,6 +296,103 @@ module "react" {
   depends_on = [null_resource.shared_install]
 }
 
+# ---------- fetch-reads (scheduled RSS aggregator) ----------
+module "fetch_reads" {
+  source  = "terraform-aws-modules/lambda/aws"
+  version = "~> 7.0"
+
+  function_name = "${local.name_prefix}-fetch-reads"
+  handler       = "index.handler"
+  runtime       = local.lambda_runtime
+  architectures = [local.lambda_arch]
+
+  create_role = false
+  lambda_role = aws_iam_role.fetch_reads.arn
+  memory_size = 512
+  timeout     = 120 # generous — N feeds × HTTP fetch + parse + PutItems
+  publish     = true
+
+  source_path = [
+    {
+      path = "${path.module}/src"
+      commands = [
+        "npm run build:fetch-reads",
+        ":zip ../dist/fetch-reads .",
+      ]
+    }
+  ]
+
+  environment_variables = {
+    TABLE_NAME     = aws_dynamodb_table.main.name
+    READ_FEEDS     = join(",", [for f in var.read_feeds : "${f.url}|${f.source}"])
+    READS_TTL_DAYS = var.read_ttl_days
+  }
+
+  cloudwatch_logs_retention_in_days = local.lambda_log_retention_days
+  tags                              = local.default_tags
+
+  depends_on = [null_resource.shared_install]
+}
+
+resource "aws_cloudwatch_event_rule" "fetch_reads" {
+  count               = length(var.read_feeds) > 0 ? 1 : 0
+  name                = "${local.name_prefix}-fetch-reads"
+  description         = "Scheduled RSS feed aggregator for /reads"
+  schedule_expression = var.read_fetch_schedule
+}
+
+resource "aws_cloudwatch_event_target" "fetch_reads" {
+  count     = length(var.read_feeds) > 0 ? 1 : 0
+  rule      = aws_cloudwatch_event_rule.fetch_reads[0].name
+  target_id = "fetch-reads-lambda"
+  arn       = module.fetch_reads.lambda_function_arn
+}
+
+resource "aws_lambda_permission" "fetch_reads_eventbridge" {
+  count         = length(var.read_feeds) > 0 ? 1 : 0
+  statement_id  = "AllowEventBridgeFetchReads"
+  action        = "lambda:InvokeFunction"
+  function_name = module.fetch_reads.lambda_function_name
+  principal     = "events.amazonaws.com"
+  source_arn    = aws_cloudwatch_event_rule.fetch_reads[0].arn
+}
+
+# ---------- list-reads ----------
+module "list_reads" {
+  source  = "terraform-aws-modules/lambda/aws"
+  version = "~> 7.0"
+
+  function_name = "${local.name_prefix}-list-reads"
+  handler       = "index.handler"
+  runtime       = local.lambda_runtime
+  architectures = [local.lambda_arch]
+
+  create_role = false
+  lambda_role = aws_iam_role.list_reads.arn
+  memory_size = 256
+  timeout     = 10
+  publish     = true
+
+  source_path = [
+    {
+      path = "${path.module}/src"
+      commands = [
+        "npm run build:list-reads",
+        ":zip ../dist/list-reads .",
+      ]
+    }
+  ]
+
+  environment_variables = {
+    TABLE_NAME = aws_dynamodb_table.main.name
+  }
+
+  cloudwatch_logs_retention_in_days = local.lambda_log_retention_days
+  tags                              = local.default_tags
+
+  depends_on = [null_resource.shared_install]
+}
+
 # ---------- list-content ----------
 module "list_content" {
   source  = "terraform-aws-modules/lambda/aws"

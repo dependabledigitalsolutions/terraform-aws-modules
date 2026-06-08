@@ -51,3 +51,18 @@ export interface UploadStashRow {
   caption?: string;
   ttl: number;                        // unix epoch
 }
+
+// Aggregated reads from configured Arsenal RSS feeds. Populated by the
+// scheduled fetch-reads Lambda; surfaced by list-reads. Anonymous,
+// link-card UX — no on-site engagement.
+export interface ReadRow {
+  PK: "READ";
+  SK: string;                         // "{publishedAtIso}#{urlHash}" — newest-first via descending Query
+  url: string;
+  source: string;                     // human label, e.g. "Arseblog"
+  title: string;
+  summary?: string;
+  publishedAt: string;                // iso
+  fetchedAt: string;                  // iso
+  ttl: number;                        // unix epoch — auto-prune older entries
+}
