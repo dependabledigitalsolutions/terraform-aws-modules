@@ -86,6 +86,75 @@ describe("parseFeedXml", () => {
     expect(parseFeedXml("<other><stuff/></other>")).toEqual([]);
   });
 
+  it("falls back to media:content when description has no <img>", () => {
+    const xml = `<?xml version="1.0"?>
+<rss version="2.0" xmlns:media="http://search.yahoo.com/mrss/">
+  <channel>
+    <item>
+      <title>Kroupi transfer rumour</title>
+      <link>https://dailycannon.com/2026/06/kroupi/</link>
+      <description><![CDATA[Plain text description, no img tag.]]></description>
+      <pubDate>Mon, 08 Jun 2026 09:00:00 +0000</pubDate>
+      <media:content url="https://dailycannon.com/.../kroupi.jpg" type="image/jpeg" width="1000" height="666"/>
+    </item>
+  </channel>
+</rss>`;
+    const items = parseFeedXml(xml);
+    expect(items).toHaveLength(1);
+    expect(items[0].image).toBe("https://dailycannon.com/.../kroupi.jpg");
+  });
+
+  it("falls back to media:thumbnail when media:content isn't present", () => {
+    const xml = `<?xml version="1.0"?>
+<rss version="2.0" xmlns:media="http://search.yahoo.com/mrss/">
+  <channel>
+    <item>
+      <title>Match report</title>
+      <link>https://www.football.london/article-1/</link>
+      <description>summary</description>
+      <pubDate>Mon, 08 Jun 2026 09:00:00 +0000</pubDate>
+      <media:thumbnail url="https://www.football.london/.../thumb.jpg"/>
+    </item>
+  </channel>
+</rss>`;
+    const items = parseFeedXml(xml);
+    expect(items[0].image).toBe("https://www.football.london/.../thumb.jpg");
+  });
+
+  it("falls back to <enclosure type=image/*>", () => {
+    const xml = `<?xml version="1.0"?>
+<rss version="2.0">
+  <channel>
+    <item>
+      <title>Article</title>
+      <link>https://example.com/article/</link>
+      <description>summary</description>
+      <pubDate>Mon, 08 Jun 2026 09:00:00 +0000</pubDate>
+      <enclosure url="https://example.com/img.png" type="image/png"/>
+    </item>
+  </channel>
+</rss>`;
+    const items = parseFeedXml(xml);
+    expect(items[0].image).toBe("https://example.com/img.png");
+  });
+
+  it("ignores <enclosure> with non-image type", () => {
+    const xml = `<?xml version="1.0"?>
+<rss version="2.0">
+  <channel>
+    <item>
+      <title>Podcast</title>
+      <link>https://example.com/pod/</link>
+      <description>summary</description>
+      <pubDate>Mon, 08 Jun 2026 09:00:00 +0000</pubDate>
+      <enclosure url="https://example.com/pod.mp3" type="audio/mpeg"/>
+    </item>
+  </channel>
+</rss>`;
+    const items = parseFeedXml(xml);
+    expect(items[0].image).toBeUndefined();
+  });
+
   it("skips items missing required fields (no link, no title)", () => {
     const xml = `<rss><channel><item><pubDate>2026-06-01</pubDate></item></channel></rss>`;
     expect(parseFeedXml(xml)).toEqual([]);
