@@ -214,6 +214,50 @@ resource "aws_iam_role_policy" "list_content" {
   policy = data.aws_iam_policy_document.list_content.json
 }
 
+# ---------- fetch-reads (scheduled RSS aggregator) ----------
+resource "aws_iam_role" "fetch_reads" {
+  name               = "${local.name_prefix}-fetch-reads"
+  assume_role_policy = data.aws_iam_policy_document.lambda_trust.json
+  tags               = local.default_tags
+}
+resource "aws_iam_role_policy_attachment" "fetch_reads_basic" {
+  role       = aws_iam_role.fetch_reads.name
+  policy_arn = local.lambda_basic_exec
+}
+data "aws_iam_policy_document" "fetch_reads" {
+  statement {
+    actions   = ["dynamodb:PutItem"]
+    resources = [aws_dynamodb_table.main.arn]
+  }
+}
+resource "aws_iam_role_policy" "fetch_reads" {
+  role   = aws_iam_role.fetch_reads.id
+  name   = "inline"
+  policy = data.aws_iam_policy_document.fetch_reads.json
+}
+
+# ---------- list-reads ----------
+resource "aws_iam_role" "list_reads" {
+  name               = "${local.name_prefix}-list-reads"
+  assume_role_policy = data.aws_iam_policy_document.lambda_trust.json
+  tags               = local.default_tags
+}
+resource "aws_iam_role_policy_attachment" "list_reads_basic" {
+  role       = aws_iam_role.list_reads.name
+  policy_arn = local.lambda_basic_exec
+}
+data "aws_iam_policy_document" "list_reads" {
+  statement {
+    actions   = ["dynamodb:Query"]
+    resources = [aws_dynamodb_table.main.arn]
+  }
+}
+resource "aws_iam_role_policy" "list_reads" {
+  role   = aws_iam_role.list_reads.id
+  name   = "inline"
+  policy = data.aws_iam_policy_document.list_reads.json
+}
+
 # ---------- react (anonymous emoji reactions) ----------
 resource "aws_iam_role" "react" {
   name               = "${local.name_prefix}-react"

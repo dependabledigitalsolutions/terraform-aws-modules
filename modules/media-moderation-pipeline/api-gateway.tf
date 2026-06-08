@@ -51,6 +51,13 @@ module "api" {
         payload_format_version = "2.0"
       }
     }
+    "GET /api/list-reads" = {
+      integration = {
+        uri                    = module.list_reads.lambda_function_arn
+        type                   = "AWS_PROXY"
+        payload_format_version = "2.0"
+      }
+    }
   }
 
   tags = local.default_tags
@@ -86,6 +93,14 @@ resource "aws_lambda_permission" "api_ingest_url" {
   function_name = module.ingest_url.lambda_function_name
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${module.api.api_execution_arn}/*/*/api/ingest-url"
+}
+
+resource "aws_lambda_permission" "api_list_reads" {
+  statement_id  = "AllowAPIListReads"
+  action        = "lambda:InvokeFunction"
+  function_name = module.list_reads.lambda_function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${module.api.api_execution_arn}/*/*/api/list-reads"
 }
 
 resource "aws_lambda_permission" "api_react" {

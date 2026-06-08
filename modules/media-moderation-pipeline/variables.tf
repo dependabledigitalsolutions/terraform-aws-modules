@@ -51,6 +51,27 @@ variable "admin_uploads_per_day_per_user" {
   description = "Daily upload cap for admin emails. Used for one-off bulk-seed runs; keep it high enough for an initial import but not unlimited."
 }
 
+variable "read_feeds" {
+  type = list(object({
+    url    = string
+    source = string
+  }))
+  default     = []
+  description = "RSS / Atom feeds the fetch-reads Lambda will pull on its schedule. Each entry: { url, source }. Empty list disables the scheduled fetch (Lambda stays deployed but no EventBridge fires)."
+}
+
+variable "read_fetch_schedule" {
+  type        = string
+  default     = "rate(6 hours)"
+  description = "EventBridge cron expression for the fetch-reads Lambda."
+}
+
+variable "read_ttl_days" {
+  type        = number
+  default     = 90
+  description = "DynamoDB item TTL on READ rows. Older entries auto-prune."
+}
+
 variable "google_client_id" {
   type        = string
   description = "Google OAuth client ID used as the JWT audience claim."
